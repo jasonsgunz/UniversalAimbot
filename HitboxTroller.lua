@@ -219,7 +219,7 @@ selfFrame.Position = UDim2.fromOffset(10,90)
 selfFrame.BackgroundTransparency = 1
 local tag2=Instance.new("StringValue",selfFrame)
 tag2.Name="SectionTag"
-tag2.Value="Self"
+tag2.Value = "Self"
 selfFrame.Visible = false
 
 local selfOptions={
@@ -256,7 +256,7 @@ for name,opt in pairs(selfOptions) do
     Instance.new("UICorner", powerBox).CornerRadius=UDim.new(0,6)
     opt.powerBox = powerBox
 
-    yStart=yStart+45
+    yStart = yStart + 45
 end
 
 -- UPDATE BUTTON TEXT AND COLOR
@@ -291,7 +291,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- === FLY SCRIPT ===
+-- === FLY SCRIPT (CAMERA-RELATIVE, WORKING) ===
 local flying = false
 local ctrl = {f=0,b=0,l=0,r=0}
 
@@ -317,20 +317,21 @@ local function startFly()
     bv.MaxForce = Vector3.new(9e9,9e9,9e9)
     bv.Velocity = Vector3.new(0,0,0)
 
-    -- loop
     RunService.RenderStepped:Connect(function()
         if not flying then
             bv.Velocity = Vector3.new(0,0,0)
             return
         end
+
         local moveSpeed = (tonumber(selfOptions.fly.powerBox.Text) or 1) * 30
-        local moveVec = Vector3.new(ctrl.r-ctrl.l,0,ctrl.f-ctrl.b)
+        local moveVec = Vector3.new(ctrl.l + ctrl.r, 0, ctrl.f + ctrl.b)
         if moveVec.Magnitude > 0 then moveVec = moveVec.Unit end
 
         local camCF = workspace.CurrentCamera.CFrame
-        local camLook = camCF.LookVector
-        local camRight = camCF.RightVector
-        local velocity = (camLook*moveVec.Z + camRight*moveVec.X) * moveSpeed
+        local camLook = Vector3.new(camCF.LookVector.X,0,camCF.LookVector.Z).Unit
+        local camRight = Vector3.new(camCF.RightVector.X,0,camCF.RightVector.Z).Unit
+
+        local velocity = (camLook * moveVec.Z + camRight * moveVec.X) * moveSpeed
 
         if not selfOptions.fly.enabled then
             velocity = Vector3.new(0,0,0)
@@ -341,7 +342,7 @@ local function startFly()
     end)
 end
 
--- FLY TOGGLE FUNCTION
+-- FLY TOGGLE
 local function toggleFly()
     selfOptions.fly.enabled = not selfOptions.fly.enabled
     updateBtn(selfOptions.fly.toggleBtn,selfOptions.fly.enabled)
@@ -350,7 +351,6 @@ local function toggleFly()
     end
 end
 
--- BUTTON & KEYBOARD
 selfOptions.fly.toggleBtn.MouseButton1Click:Connect(toggleFly)
 UserInputService.InputBegan:Connect(function(input,gp)
     if gp then return end
@@ -362,10 +362,10 @@ end)
 -- FLY WASD CONTROLS
 UserInputService.InputBegan:Connect(function(input,gp)
     if gp then return end
-    if gp.KeyCode == Enum.KeyCode.W then ctrl.f = 1 end
-    if gp.KeyCode == Enum.KeyCode.S then ctrl.b = 1 end
-    if gp.KeyCode == Enum.KeyCode.A then ctrl.l = 1 end
-    if gp.KeyCode == Enum.KeyCode.D then ctrl.r = 1 end
+    if input.KeyCode == Enum.KeyCode.W then ctrl.f = 1 end
+    if input.KeyCode == Enum.KeyCode.S then ctrl.b = -1 end
+    if input.KeyCode == Enum.KeyCode.A then ctrl.l = -1 end
+    if input.KeyCode == Enum.KeyCode.D then ctrl.r = 1 end
 end)
 UserInputService.InputEnded:Connect(function(input,gp)
     if gp then return end
