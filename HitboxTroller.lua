@@ -291,7 +291,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- === FLY SCRIPT (CAMERA-RELATIVE, WORKING) ===
+-- === FLY SCRIPT (FULL 3D CAMERA RELATIVE) ===
 local flying = false
 local ctrl = {f=0,b=0,l=0,r=0}
 
@@ -328,15 +328,10 @@ local function startFly()
         if moveVec.Magnitude > 0 then moveVec = moveVec.Unit end
 
         local camCF = workspace.CurrentCamera.CFrame
-        local camLook = Vector3.new(camCF.LookVector.X,0,camCF.LookVector.Z).Unit
-        local camRight = Vector3.new(camCF.RightVector.X,0,camCF.RightVector.Z).Unit
+        local camLook = camCF.LookVector.Unit -- FULL 3D
+        local camRight = camCF.RightVector.Unit -- FULL 3D
 
         local velocity = (camLook * moveVec.Z + camRight * moveVec.X) * moveSpeed
-
-        if not selfOptions.fly.enabled then
-            velocity = Vector3.new(0,0,0)
-        end
-
         bv.Velocity = velocity
         bg.CFrame = camCF
     end)
