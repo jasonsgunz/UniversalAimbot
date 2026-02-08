@@ -269,12 +269,6 @@ local function updateBtn(btn,state)
     end
 end
 
--- CENTRALIZED OPTION TOGGLE
-local function toggleOption(opt)
-    opt.enabled = not opt.enabled
-    updateBtn(opt.toggleBtn,opt.enabled)
-end
-
 -- SPEED & JUMP APPLY LOOP
 RunService.RenderStepped:Connect(function()
     local char = player.Character
@@ -297,73 +291,66 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- === FLY SCRIPT (WORKING TOGGLE) ===
-local flying=false
-local tpwalking=false
-local ctrl={f=0,b=0,l=0,r=0}
+-- === FLY SCRIPT ===
+local flying = false
+local ctrl = {f=0,b=0,l=0,r=0}
 
 local function startFly()
-    local plr=Players.LocalPlayer
-    local char=plr.Character
+    if flying then return end
+    local char = player.Character
     if not char then return end
     local hum = char:FindFirstChildWhichIsA("Humanoid")
     local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
     if not hum or not root then return end
 
-    plr.Character.Animate.Disabled = true
+    flying = true
+    hum.PlatformStand = true
+    player.Character.Animate.Disabled = true
     for _,v in next, hum:GetPlayingAnimationTracks() do v:AdjustSpeed(0) end
 
-    hum.PlatformStand = true
-    flying=true
-    tpwalking=true
-
     local bg = Instance.new("BodyGyro", root)
-    bg.P=9e4
-    bg.MaxTorque=Vector3.new(9e9,9e9,9e9)
-    bg.CFrame=root.CFrame
+    bg.P = 9e4
+    bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
+    bg.CFrame = root.CFrame
 
     local bv = Instance.new("BodyVelocity", root)
-    bv.MaxForce=Vector3.new(9e9,9e9,9e9)
-    bv.Velocity=Vector3.new(0,0,0)
+    bv.MaxForce = Vector3.new(9e9,9e9,9e9)
+    bv.Velocity = Vector3.new(0,0,0)
 
-    while flying and char.Parent and hum.Parent do
-        RunService.RenderStepped:Wait()
-        local moveSpeed = (tonumber(selfOptions.fly.powerBox.Text) or 1)*30
+    -- loop
+    RunService.RenderStepped:Connect(function()
+        if not flying then
+            bv.Velocity = Vector3.new(0,0,0)
+            return
+        end
+        local moveSpeed = (tonumber(selfOptions.fly.powerBox.Text) or 1) * 30
         local moveVec = Vector3.new(ctrl.r-ctrl.l,0,ctrl.f-ctrl.b)
-        if moveVec.Magnitude>0 then moveVec=moveVec.Unit end
+        if moveVec.Magnitude > 0 then moveVec = moveVec.Unit end
+
         local camCF = workspace.CurrentCamera.CFrame
         local camLook = camCF.LookVector
         local camRight = camCF.RightVector
-        local velocity = (camLook*moveVec.Z + camRight*moveVec.X)*moveSpeed
-        if ctrl.f+ctrl.b+ctrl.l+ctrl.r==0 then velocity=Vector3.new(0,0,0) end
-        bv.Velocity=velocity
-        bg.CFrame=camCF
-        tpwalking = selfOptions.fly.enabled
-        if not tpwalking then bv.Velocity=Vector3.new(0,0,0) end
-    end
+        local velocity = (camLook*moveVec.Z + camRight*moveVec.X) * moveSpeed
 
-    flying=false
-    bv:Destroy()
-    bg:Destroy()
-    hum.PlatformStand=false
-    plr.Character.Animate.Disabled=false
-    for _,v in next, hum:GetPlayingAnimationTracks() do v:AdjustSpeed(1) end
-end
+        if not selfOptions.fly.enabled then
+            velocity = Vector3.new(0,0,0)
+        end
 
-local function stopFly()
-    selfOptions.fly.enabled = false
+        bv.Velocity = velocity
+        bg.CFrame = camCF
+    end)
 end
 
 -- FLY TOGGLE FUNCTION
 local function toggleFly()
     selfOptions.fly.enabled = not selfOptions.fly.enabled
-    updateBtn(selfOptions.fly.toggleBtn, selfOptions.fly.enabled)
-    if selfOptions.fly.enabled and not flying then
-        spawn(startFly)
+    updateBtn(selfOptions.fly.toggleBtn,selfOptions.fly.enabled)
+    if selfOptions.fly.enabled then
+        startFly()
     end
 end
 
--- BUTTON CLICK & KEYBOARD TOGGLE
+-- BUTTON & KEYBOARD
 selfOptions.fly.toggleBtn.MouseButton1Click:Connect(toggleFly)
 UserInputService.InputBegan:Connect(function(input,gp)
     if gp then return end
@@ -375,15 +362,15 @@ end)
 -- FLY WASD CONTROLS
 UserInputService.InputBegan:Connect(function(input,gp)
     if gp then return end
-    if input.KeyCode==Enum.KeyCode.W then ctrl.f=1 end
-    if input.KeyCode==Enum.KeyCode.S then ctrl.b=1 end
-    if input.KeyCode==Enum.KeyCode.A then ctrl.l=1 end
-    if input.KeyCode==Enum.KeyCode.D then ctrl.r=1 end
+    if gp.KeyCode == Enum.KeyCode.W then ctrl.f = 1 end
+    if gp.KeyCode == Enum.KeyCode.S then ctrl.b = 1 end
+    if gp.KeyCode == Enum.KeyCode.A then ctrl.l = 1 end
+    if gp.KeyCode == Enum.KeyCode.D then ctrl.r = 1 end
 end)
 UserInputService.InputEnded:Connect(function(input,gp)
     if gp then return end
-    if input.KeyCode==Enum.KeyCode.W then ctrl.f=0 end
-    if input.KeyCode==Enum.KeyCode.S then ctrl.b=0 end
-    if input.KeyCode==Enum.KeyCode.A then ctrl.l=0 end
-    if input.KeyCode==Enum.KeyCode.D then ctrl.r=0 end
+    if input.KeyCode == Enum.KeyCode.W then ctrl.f = 0 end
+    if input.KeyCode == Enum.KeyCode.S then ctrl.b = 0 end
+    if input.KeyCode == Enum.KeyCode.A then ctrl.l = 0 end
+    if input.KeyCode == Enum.KeyCode.D then ctrl.r = 0 end
 end)
