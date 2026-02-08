@@ -275,35 +275,6 @@ local function toggleOption(opt)
     updateBtn(opt.toggleBtn,opt.enabled)
 end
 
--- CONNECT BUTTON CLICKS
-for _,opt in pairs(selfOptions) do
-    opt.toggleBtn.MouseButton1Click:Connect(function()
-        toggleOption(opt)
-        if opt == selfOptions.fly then
-            if opt.enabled and not flying then spawn(startFly)
-            elseif not opt.enabled and flying then stopFly() end
-        end
-    end)
-    opt.powerBox.FocusLost:Connect(function()
-        local val = tonumber(opt.powerBox.Text)
-        if val then opt.value = val end
-    end)
-end
-
--- CONNECT KEYBOARD SHORTCUTS
-UserInputService.InputBegan:Connect(function(input,gp)
-    if gp then return end
-    for _,opt in pairs(selfOptions) do
-        if input.KeyCode == opt.key then
-            toggleOption(opt)
-            if opt == selfOptions.fly then
-                if opt.enabled and not flying then spawn(startFly)
-                elseif not opt.enabled and flying then stopFly() end
-            end
-        end
-    end
-end)
-
 -- SPEED & JUMP APPLY LOOP
 RunService.RenderStepped:Connect(function()
     local char = player.Character
@@ -326,7 +297,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- === FLY SCRIPT (W/A/S/D FIXED) ===
+-- === FLY SCRIPT (WORKING TOGGLE) ===
 local flying=false
 local tpwalking=false
 local ctrl={f=0,b=0,l=0,r=0}
@@ -355,7 +326,7 @@ local function startFly()
     bv.MaxForce=Vector3.new(9e9,9e9,9e9)
     bv.Velocity=Vector3.new(0,0,0)
 
-    while tpwalking and char.Parent and hum.Parent do
+    while flying and char.Parent and hum.Parent do
         RunService.RenderStepped:Wait()
         local moveSpeed = (tonumber(selfOptions.fly.powerBox.Text) or 1)*30
         local moveVec = Vector3.new(ctrl.r-ctrl.l,0,ctrl.f-ctrl.b)
@@ -367,9 +338,10 @@ local function startFly()
         if ctrl.f+ctrl.b+ctrl.l+ctrl.r==0 then velocity=Vector3.new(0,0,0) end
         bv.Velocity=velocity
         bg.CFrame=camCF
+        tpwalking = selfOptions.fly.enabled
+        if not tpwalking then bv.Velocity=Vector3.new(0,0,0) end
     end
 
-    tpwalking=false
     flying=false
     bv:Destroy()
     bg:Destroy()
@@ -378,7 +350,27 @@ local function startFly()
     for _,v in next, hum:GetPlayingAnimationTracks() do v:AdjustSpeed(1) end
 end
 
-local function stopFly() tpwalking=false end
+local function stopFly()
+    selfOptions.fly.enabled = false
+end
+
+-- FLY TOGGLE FUNCTION
+local function toggleFly()
+    selfOptions.fly.enabled = not selfOptions.fly.enabled
+    updateBtn(selfOptions.fly.toggleBtn, selfOptions.fly.enabled)
+    if selfOptions.fly.enabled and not flying then
+        spawn(startFly)
+    end
+end
+
+-- BUTTON CLICK & KEYBOARD TOGGLE
+selfOptions.fly.toggleBtn.MouseButton1Click:Connect(toggleFly)
+UserInputService.InputBegan:Connect(function(input,gp)
+    if gp then return end
+    if input.KeyCode == selfOptions.fly.key then
+        toggleFly()
+    end
+end)
 
 -- FLY WASD CONTROLS
 UserInputService.InputBegan:Connect(function(input,gp)
