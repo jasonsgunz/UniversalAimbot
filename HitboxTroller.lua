@@ -113,7 +113,7 @@ hitboxToggle.Position = UDim2.fromOffset(10,10)
 hitboxToggle.Size = UDim2.fromOffset(140,35)
 hitboxToggle.Text="Hitbox: OFF"
 hitboxToggle.BackgroundColor3=Color3.fromRGB(200,50,50)
-Instance.new("UICorner",hitboxToggle).CornerRadius=UDim.new(0,6)
+Instance.new("UICorner",hitboxToggle)
 
 local hitboxInput = Instance.new("TextBox",mainFrame)
 hitboxInput.Position = UDim2.fromOffset(160,10)
@@ -122,28 +122,21 @@ hitboxInput.Text=tostring(hitboxSize)
 hitboxInput.ClearTextOnFocus=false
 hitboxInput.BackgroundColor3 = Color3.fromRGB(50,50,55)
 hitboxInput.TextColor3 = Color3.fromRGB(255,255,255)
-Instance.new("UICorner",hitboxInput).CornerRadius = UDim.new(0,6)
+Instance.new("UICorner",hitboxInput)
 
 local visualToggle = Instance.new("TextButton",mainFrame)
 visualToggle.Position = UDim2.fromOffset(230,10)
 visualToggle.Size = UDim2.fromOffset(140,35)
 visualToggle.Text="Visualizer: OFF"
 visualToggle.BackgroundColor3=Color3.fromRGB(200,50,50)
-Instance.new("UICorner",visualToggle).CornerRadius=UDim.new(0,6)
+Instance.new("UICorner",visualToggle)
 
--- COLLISION TOGGLE
 local collisionToggle = Instance.new("TextButton",mainFrame)
 collisionToggle.Position = UDim2.fromOffset(10,55)
 collisionToggle.Size = UDim2.fromOffset(140,35)
 collisionToggle.Text="Collision: OFF"
 collisionToggle.BackgroundColor3=Color3.fromRGB(200,50,50)
-Instance.new("UICorner",collisionToggle).CornerRadius=UDim.new(0,6)
-
-collisionToggle.MouseButton1Click:Connect(function()
-    hitboxCollision = not hitboxCollision
-    collisionToggle.Text="Collision: "..(hitboxCollision and "ON" or "OFF")
-    collisionToggle.BackgroundColor3=hitboxCollision and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
-end)
+Instance.new("UICorner",collisionToggle)
 
 -- HITBOX FUNCTIONS
 local function applyHitbox(plr)
@@ -157,7 +150,7 @@ local function applyHitbox(plr)
     conn = RunService.RenderStepped:Connect(function()
         if not hrp.Parent then conn:Disconnect() return end
         hrp.Size=Vector3.new(hitboxSize,hitboxSize,hitboxSize)
-        hrp.CanCollide = hitboxCollision
+        hrp.CanCollide=hitboxCollision
     end)
     hitboxData[plr]={conn=conn}
 end
@@ -170,14 +163,14 @@ local function reapplyHitboxes()
     for _,p in pairs(Players:GetPlayers()) do applyHitbox(p) end
 end
 
-hitboxToggle.MouseButton1Click:Connect(function()
-    hitboxEnabled=not hitboxEnabled
-    hitboxToggle.Text="Hitbox: "..(hitboxEnabled and "ON" or "OFF")
-    hitboxToggle.BackgroundColor3=hitboxEnabled and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
+collisionToggle.MouseButton1Click:Connect(function()
+    hitboxCollision = not hitboxCollision
+    collisionToggle.Text="Collision: "..(hitboxCollision and "ON" or "OFF")
+    collisionToggle.BackgroundColor3=hitboxCollision and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
     reapplyHitboxes()
 end)
 
--- === FLY SCRIPT (FIXED) ===
+-- ================= FLY =================
 local flying=false
 local tpwalking=false
 local ctrl={f=0,b=0,l=0,r=0}
@@ -189,9 +182,9 @@ local function startFly()
     local root=char:FindFirstChild("HumanoidRootPart")
     if not hum or not root then return end
 
-    hum.PlatformStand=true
     flying=true
     tpwalking=true
+    hum.PlatformStand=true
 
     local bg=Instance.new("BodyGyro",root)
     bg.MaxTorque=Vector3.new(9e9,9e9,9e9)
@@ -209,32 +202,39 @@ local function startFly()
         local side=(ctrl.r-ctrl.l)
 
         local velocity=(camLook*forward+camRight*side)*50
-        if forward==0 and side==0 then
-            velocity=Vector3.new()
-        end
+        if forward==0 and side==0 then velocity=Vector3.new() end
 
         bv.Velocity=velocity
         bg.CFrame=camCF
     end
 
-    hum.PlatformStand=false
     flying=false
     bv:Destroy()
     bg:Destroy()
+    hum.PlatformStand=false
 end
 
-UserInputService.InputBegan:Connect(function(i,gp)
+local function toggleFly()
+    if flying then
+        tpwalking=false
+    else
+        task.spawn(startFly)
+    end
+end
+
+UserInputService.InputBegan:Connect(function(input,gp)
     if gp then return end
-    if i.KeyCode==Enum.KeyCode.W then ctrl.f=1 end
-    if i.KeyCode==Enum.KeyCode.S then ctrl.b=1 end
-    if i.KeyCode==Enum.KeyCode.A then ctrl.l=1 end
-    if i.KeyCode==Enum.KeyCode.D then ctrl.r=1 end
+    if input.KeyCode == Enum.KeyCode.W then ctrl.f=1 end
+    if input.KeyCode == Enum.KeyCode.S then ctrl.b=1 end
+    if input.KeyCode == Enum.KeyCode.A then ctrl.l=1 end
+    if input.KeyCode == Enum.KeyCode.D then ctrl.r=1 end
+    if input.KeyCode == Enum.KeyCode.U then toggleFly() end
 end)
 
-UserInputService.InputEnded:Connect(function(i,gp)
+UserInputService.InputEnded:Connect(function(input,gp)
     if gp then return end
-    if i.KeyCode==Enum.KeyCode.W then ctrl.f=0 end
-    if i.KeyCode==Enum.KeyCode.S then ctrl.b=0 end
-    if i.KeyCode==Enum.KeyCode.A then ctrl.l=0 end
-    if i.KeyCode==Enum.KeyCode.D then ctrl.r=0 end
+    if input.KeyCode == Enum.KeyCode.W then ctrl.f=0 end
+    if input.KeyCode == Enum.KeyCode.S then ctrl.b=0 end
+    if input.KeyCode == Enum.KeyCode.A then ctrl.l=0 end
+    if input.KeyCode == Enum.KeyCode.D then ctrl.r=0 end
 end)
