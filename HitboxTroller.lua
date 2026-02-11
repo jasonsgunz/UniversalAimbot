@@ -1,4 +1,4 @@
--- SERVICES
+-- SERVICES 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -63,57 +63,15 @@ closeBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
 Instance.new("UICorner", closeBtn)
 closeBtn.MouseButton1Click:Connect(function() gui:Destroy() end)
 
--- SECTIONS
-local sections = {"Main","Self"}
-local activeSection = "Main"
-local sectionButtons = {}
-for i,name in ipairs(sections) do
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.fromOffset(90,28)
-    btn.Position = UDim2.fromOffset(10+(i-1)*100,55)
-    btn.Text = name
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 16
-    btn.BackgroundColor3 = Color3.fromRGB(70,70,75)
-    Instance.new("UICorner", btn)
-    btn.MouseButton1Click:Connect(function()
-        activeSection=name
-        for _,b in pairs(sectionButtons) do b.BackgroundColor3=Color3.fromRGB(70,70,75) end
-        btn.BackgroundColor3=Color3.fromRGB(60,160,60)
-        for _,v in pairs(frame:GetChildren()) do
-            if v:IsA("Frame") and v:FindFirstChild("SectionTag") then
-                v.Visible = (v.SectionTag.Value==activeSection)
-            end
-        end
-    end)
-    sectionButtons[i]=btn
-end
-sectionButtons[1].BackgroundColor3=Color3.fromRGB(60,160,60)
-
--- MAIN SECTION
+-- MAIN SECTION FRAME
 local mainFrame = Instance.new("Frame", frame)
 mainFrame.Size = UDim2.fromOffset(380,250)
 mainFrame.Position = UDim2.fromOffset(10,90)
 mainFrame.BackgroundTransparency = 1
-local tag = Instance.new("StringValue", mainFrame)
-tag.Name = "SectionTag"
-tag.Value = "Main"
-mainFrame.Visible = true
-
--- SELF SECTION
-local selfFrame = Instance.new("Frame", frame)
-selfFrame.Size = UDim2.fromOffset(380,250)
-selfFrame.Position = UDim2.fromOffset(10,90)
-selfFrame.BackgroundTransparency = 1
-selfFrame.Visible = false
-local tag2 = Instance.new("StringValue", selfFrame)
-tag2.Name = "SectionTag"
-tag2.Value = "Self"
 
 -- HITBOX VARIABLES
 local hitboxEnabled=false
 local hitboxSize=4
-local hitboxVisual=false
 local hitboxCollision=false
 local hitboxData={}
 
@@ -123,21 +81,14 @@ hitboxToggle.Position = UDim2.fromOffset(10,10)
 hitboxToggle.Size = UDim2.fromOffset(140,35)
 hitboxToggle.Text="Hitbox: OFF"
 hitboxToggle.BackgroundColor3=Color3.fromRGB(200,50,50)
-Instance.new("UICorner",hitboxToggle).CornerRadius=UDim.new(0,6)
-
-local visualToggle = Instance.new("TextButton",mainFrame)
-visualToggle.Position = UDim2.fromOffset(160,10)
-visualToggle.Size = UDim2.fromOffset(140,35)
-visualToggle.Text="Visualizer: OFF"
-visualToggle.BackgroundColor3=Color3.fromRGB(200,50,50)
-Instance.new("UICorner",visualToggle).CornerRadius=UDim.new(0,6)
+Instance.new("UICorner",hitboxToggle)
 
 local collisionToggle = Instance.new("TextButton",mainFrame)
-collisionToggle.Position = UDim2.fromOffset(10,55)
+collisionToggle.Position = UDim2.fromOffset(160,10)
 collisionToggle.Size = UDim2.fromOffset(140,35)
 collisionToggle.Text="Collision: OFF"
 collisionToggle.BackgroundColor3=Color3.fromRGB(200,50,50)
-Instance.new("UICorner",collisionToggle).CornerRadius=UDim.new(0,6)
+Instance.new("UICorner",collisionToggle)
 
 collisionToggle.MouseButton1Click:Connect(function()
     hitboxCollision = not hitboxCollision
@@ -145,9 +96,42 @@ collisionToggle.MouseButton1Click:Connect(function()
     collisionToggle.BackgroundColor3=hitboxCollision and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
 end)
 
--- FLY VARIABLES
+local function applyHitbox(plr)
+    if not hitboxEnabled or plr==player then return end
+    local char = plr.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local conn
+    conn = RunService.RenderStepped:Connect(function()
+        if not hrp.Parent then conn:Disconnect() return end
+        hrp.Size=Vector3.new(hitboxSize,hitboxSize,hitboxSize)
+        hrp.CanCollide = hitboxCollision
+    end)
+    hitboxData[plr]={conn=conn}
+end
+
+local function reapplyHitboxes()
+    for _,v in pairs(hitboxData) do
+        if v.conn then v.conn:Disconnect() end
+    end
+    hitboxData={}
+    for _,p in pairs(Players:GetPlayers()) do applyHitbox(p) end
+end
+
+hitboxToggle.MouseButton1Click:Connect(function()
+    hitboxEnabled=not hitboxEnabled
+    hitboxToggle.Text="Hitbox: "..(hitboxEnabled and "ON" or "OFF")
+    hitboxToggle.BackgroundColor3=hitboxEnabled and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
+    reapplyHitboxes()
+end)
+
+-- ================= FLY =================
+
 local flying=false
 local tpwalking=false
+local moveSpeed=50
 local ctrl={f=0,b=0,l=0,r=0}
 
 local function startFly()
@@ -169,13 +153,21 @@ local function startFly()
 
     while tpwalking do
         RunService.RenderStepped:Wait()
-        local camCF=workspace.CurrentCamera.CFrame
-        local camLook=camCF.LookVector
-        local camRight=camCF.RightVector
 
-        local velocity=(camLook*(ctrl.f-ctrl.b)+camRight*(ctrl.r-ctrl.l))*50
-        bv.Velocity=velocity
-        bg.CFrame=camCF
+        local camCF = workspace.CurrentCamera.CFrame
+        local camLook = camCF.LookVector
+        local camRight = camCF.RightVector
+
+        local forward = (ctrl.f - ctrl.b)
+        local side = (ctrl.r - ctrl.l)
+
+        local velocity = (camLook * forward + camRight * side) * moveSpeed
+        if forward == 0 and side == 0 then
+            velocity = Vector3.new(0,0,0)
+        end
+
+        bv.Velocity = velocity
+        bg.CFrame = camCF
     end
 
     hum.PlatformStand=false
@@ -184,35 +176,20 @@ local function startFly()
     bg:Destroy()
 end
 
--- FLY BUTTON
-local flyBtn = Instance.new("TextButton", selfFrame)
-flyBtn.Position = UDim2.fromOffset(10,10)
-flyBtn.Size = UDim2.fromOffset(140,35)
-flyBtn.Text="Fly: OFF"
-flyBtn.BackgroundColor3=Color3.fromRGB(200,50,50)
-Instance.new("UICorner",flyBtn)
-
-local function toggleFly()
-    if flying then
-        tpwalking=false
-        flyBtn.Text="Fly: OFF"
-        flyBtn.BackgroundColor3=Color3.fromRGB(200,50,50)
-    else
-        flyBtn.Text="Fly: ON"
-        flyBtn.BackgroundColor3=Color3.fromRGB(60,160,60)
-        task.spawn(startFly)
-    end
-end
-
-flyBtn.MouseButton1Click:Connect(toggleFly)
-
+-- INPUT FIXED (A = 1 NOT -1)
 UserInputService.InputBegan:Connect(function(i,gp)
     if gp then return end
-    if i.KeyCode==Enum.KeyCode.U then toggleFly() end
     if i.KeyCode==Enum.KeyCode.W then ctrl.f=1 end
     if i.KeyCode==Enum.KeyCode.S then ctrl.b=1 end
     if i.KeyCode==Enum.KeyCode.A then ctrl.l=1 end
     if i.KeyCode==Enum.KeyCode.D then ctrl.r=1 end
+    if i.KeyCode==Enum.KeyCode.U then
+        if not flying then
+            task.spawn(startFly)
+        else
+            tpwalking=false
+        end
+    end
 end)
 
 UserInputService.InputEnded:Connect(function(i,gp)
