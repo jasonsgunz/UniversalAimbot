@@ -101,9 +101,11 @@ tag.Value = "Main"
 mainFrame.Visible = true
 
 -- HITBOX VARIABLES
+-- HITBOX VARIABLES
 local hitboxEnabled=false
 local hitboxSize=8
 local hitboxVisual=false
+local hitboxBillboard=false
 local hitboxData={}
 
 -- HITBOX UI
@@ -129,6 +131,23 @@ visualToggle.Size = UDim2.fromOffset(140,35)
 visualToggle.Text="Visualizer: OFF"
 visualToggle.BackgroundColor3=Color3.fromRGB(200,50,50)
 Instance.new("UICorner",visualToggle).CornerRadius = UDim.new(0,6)
+
+local billboardToggle = Instance.new("TextButton", mainFrame)
+billboardToggle.Position = UDim2.fromOffset(10, 100) -- adjust Y if needed
+billboardToggle.Size = UDim2.fromOffset(140,35)
+billboardToggle.Text = "Billboard: OFF"
+billboardToggle.BackgroundColor3 = Color3.fromRGB(200,50,50)
+Instance.new("UICorner", billboardToggle).CornerRadius = UDim.new(0,6)
+
+billboardToggle.MouseButton1Click:Connect(function()
+    hitboxBillboard = not hitboxBillboard
+    billboardToggle.Text = "Billboard: "..(hitboxBillboard and "ON" or "OFF")
+    billboardToggle.BackgroundColor3 =
+        hitboxBillboard and Color3.fromRGB(60,160,60)
+        or Color3.fromRGB(200,50,50)
+
+    reapplyHitboxes()
+end)
 
 -- COLLISION TOGGLE
 local collisionEnabled = true -- default: collisions on
