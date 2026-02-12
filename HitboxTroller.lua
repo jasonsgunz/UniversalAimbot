@@ -6,6 +6,7 @@ local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 repeat task.wait() until player
 local playerGui = player:WaitForChild("PlayerGui")
+local CoreGui = game:GetService("CoreGui")
 
 if playerGui:FindFirstChild("HitboxTroller") then
     playerGui.HitboxTroller:Destroy()
@@ -101,12 +102,12 @@ tag.Value = "Main"
 mainFrame.Visible = true
 
 -- HITBOX VARIABLES
+-- HITBOX VARIABLES
 local hitboxEnabled=false
 local hitboxSize=8
 local hitboxVisual=false
 local hitboxBillboard=false
 local hitboxData={}
-local reapplyHitboxes
 
 -- HITBOX UI
 local hitboxToggle = Instance.new("TextButton",mainFrame)
@@ -163,7 +164,7 @@ collisionToggle.MouseButton1Click:Connect(function()
     collisionEnabled = not collisionEnabled
     collisionToggle.Text = "Collision: " .. (collisionEnabled and "ON" or "OFF")
     collisionToggle.BackgroundColor3 = collisionEnabled and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
-    
+
     -- reapply all hitboxes with new collision state
     for plr, data in pairs(hitboxData) do
         if data.viz then
@@ -238,6 +239,8 @@ if not hrp then return end
     end
     local viz
     local billboard
+  local viz
+local billboard
 
 -- RED BOX VISUAL
 if hitboxVisual then
@@ -253,16 +256,17 @@ if hitboxVisual then
 end
 
 -- BILLBOARD ESP
+-- BILLBOARD ESP
 if hitboxBillboard then
     billboard = Instance.new("BillboardGui")
     billboard.Name = "ESP_" .. plr.Name
-    billboard.Parent = char
+    billboard.Parent = CoreGui
     billboard.Adornee = hrp
     billboard.AlwaysOnTop = true
     billboard.Size = UDim2.new(4, 0, 4, 0)
     billboard.StudsOffset = Vector3.new(0, 3, 0)
     billboard.ResetOnSpawn = false
-    billboard.MaxDistance = 10000
+    billboard.MaxDistance = 100000
 
 
     local bbFrame = Instance.new("Frame")
@@ -275,7 +279,7 @@ if hitboxBillboard then
     Instance.new("UICorner", bbFrame)
 end
 
-    hrp.Size = Vector3.new(hitboxSize,hitboxSize,hitboxSize)
+
     local conn
     conn = RunService.RenderStepped:Connect(function()
        if not character or not character.Parent then
@@ -286,13 +290,14 @@ end
 end
 
         end
+        hrp.Size=Vector3.new(hitboxSize,hitboxSize,hitboxSize)
         hrp.CanCollide = collisionEnabled
         if viz then viz.CFrame=hrp.CFrame viz.Size=hrp.Size end
     end)
     hitboxData[plr]={conn=conn,viz=viz,billboard=billboard}
 end
 
-reapplyHitboxes = function()
+local function reapplyHitboxes()
     for _,v in pairs(hitboxData) do
         if v.conn then v.conn:Disconnect() end
         if v.viz then v.viz:Destroy() end
@@ -521,11 +526,9 @@ end)
 
 local StarterGui = game:GetService("StarterGui")
 
-pcall(function()
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "LOADED!",
-        Text = "Script made by jasonsgunz on Github",
-        Icon = "rbxassetid://6031091002",
-        Duration = 5
-    })
-end)
+StarterGui:SetCore("SendNotification", {
+    Title = "LOADED!",
+    Text = "Script made by jasonsgunz on Github",
+    Icon = "rbxassetid://6031091002", 
+    Duration = 4
+})
