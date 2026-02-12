@@ -255,22 +255,27 @@ if hitboxVisual then
 end
 
 -- BILLBOARD ESP
+-- BILLBOARD ESP
 if hitboxBillboard then
-   billboard = Instance.new("BillboardGui")
-billboard.Parent = playerGui
-billboard.Adornee = hrp
-billboard.Size = UDim2.new(0,100,0,100)
-billboard.AlwaysOnTop = true
-billboard.ResetOnSpawn = false
-billboard.Name = "ESP_" .. plr.Name
+    billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP_" .. plr.Name
+    billboard.Parent = playerGui
+    billboard.Adornee = hrp
+    billboard.AlwaysOnTop = true
+    billboard.Size = UDim2.new(4, 0, 4, 0)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.ResetOnSpawn = false
 
-
-    local bbFrame = Instance.new("Frame", billboard)
+    local bbFrame = Instance.new("Frame")
+    bbFrame.Parent = billboard
     bbFrame.Size = UDim2.fromScale(1,1)
     bbFrame.BackgroundColor3 = Color3.fromRGB(255,0,0)
-    bbFrame.BackgroundTransparency = 0.3
+    bbFrame.BackgroundTransparency = 0.25
     bbFrame.BorderSizePixel = 0
+
+    Instance.new("UICorner", bbFrame)
 end
+
 
     local conn
     conn = RunService.RenderStepped:Connect(function()
