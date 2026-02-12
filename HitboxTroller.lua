@@ -259,7 +259,7 @@ end
 if hitboxBillboard then
     billboard = Instance.new("BillboardGui")
     billboard.Name = "ESP_" .. plr.Name
-    billboard.Parent = character
+    billboard.Parent = char
     billboard.Adornee = hrp
     billboard.AlwaysOnTop = true
     billboard.Size = UDim2.new(4, 0, 4, 0)
