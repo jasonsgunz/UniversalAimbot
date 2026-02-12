@@ -256,11 +256,14 @@ end
 
 -- BILLBOARD ESP
 if hitboxBillboard then
-    billboard = Instance.new("BillboardGui")
-    billboard.Parent = hrp
-    billboard.Size = UDim2.new(0,100,0,100)
-    billboard.AlwaysOnTop = true
-    billboard.ResetOnSpawn = false
+   billboard = Instance.new("BillboardGui")
+billboard.Parent = playerGui
+billboard.Adornee = hrp
+billboard.Size = UDim2.new(0,100,0,100)
+billboard.AlwaysOnTop = true
+billboard.ResetOnSpawn = false
+billboard.Name = "ESP_" .. plr.Name
+
 
     local bbFrame = Instance.new("Frame", billboard)
     bbFrame.Size = UDim2.fromScale(1,1)
