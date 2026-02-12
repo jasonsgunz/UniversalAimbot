@@ -266,8 +266,6 @@ if hitboxBillboard then
     billboard.Size = UDim2.new(4, 0, 4, 0)
     billboard.StudsOffset = Vector3.new(0, 3, 0)
     billboard.ResetOnSpawn = false
-    billboard.MaxDistance = 100000
-
 
     local bbFrame = Instance.new("Frame")
     bbFrame.Parent = billboard
@@ -282,6 +280,11 @@ end
 
     local conn
     conn = RunService.RenderStepped:Connect(function()
+        if not hrp.Parent then
+            if viz then viz:Destroy() end
+            if billboard then billboard:Destroy() end
+            conn:Disconnect()
+            return
        if not character or not character.Parent then
     if viz then viz:Destroy() end
     if billboard then billboard:Destroy() end
@@ -523,12 +526,3 @@ UserInputService.InputEnded:Connect(function(input,gp)
     if input.KeyCode == Enum.KeyCode.A then ctrl.l=0 end
     if input.KeyCode == Enum.KeyCode.D then ctrl.r=0 end
 end)
-
-local StarterGui = game:GetService("StarterGui")
-
-StarterGui:SetCore("SendNotification", {
-    Title = "LOADED!",
-    Text = "Script made by jasonsgunz on Github",
-    Icon = "rbxassetid://6031091002", 
-    Duration = 4
-})
