@@ -246,6 +246,8 @@ if hitboxVisual then
     viz = Instance.new("Part", workspace)
     viz.Anchored = true
     viz.CanCollide = false
+    viz.CanQuery = false
+    viz.CanTouch = false
     viz.Transparency = 0.3
     viz.Color = Color3.fromRGB(255,0,0)
     viz.Material = Enum.Material.Neon
@@ -276,7 +278,7 @@ end
             return
         end
         hrp.Size=Vector3.new(hitboxSize,hitboxSize,hitboxSize)
-        hrp.CanCollide=false
+        hrp.CanCollide = collisionEnabled
         if viz then viz.CFrame=hrp.CFrame viz.Size=hrp.Size end
     end)
     hitboxData[plr]={conn=conn,viz=viz,billboard=billboard}
