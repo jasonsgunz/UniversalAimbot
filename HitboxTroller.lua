@@ -225,19 +225,93 @@ local function findBestHitboxPart(character)
 end
 
 -- HITBOX FUNCTIONS
+
+local function clearHitbox(plr)
+    local data = hitboxData[plr]
+    if not data then return end
+
+    if data.conn then data.conn:Disconnect() end
+    if data.viz then data.viz:Destroy() end
+    if data.billboard then data.billboard:Destroy() end
+
+    hitboxData[plr] = nil
+end
+
 local function applyHitbox(plr)
-    if not hitboxEnabled or plr==player then return end
+    if not hitboxEnabled or plr == player then return end
+
     local char = plr.Character
     if not char then return end
-   local hrp = findBestHitboxPart(char)
-if not hrp then return end
-    if hitboxData[plr] then
-        if hitboxData[plr].conn then hitboxData[plr].conn:Disconnect() end
-        if hitboxData[plr].viz then hitboxData[plr].viz:Destroy() end
-        if hitboxData[plr].billboard then hitboxData[plr].billboard:Destroy() end
-    end
+
+    local hrp = findBestHitboxPart(char)
+    if not hrp then return end
+
+    clearHitbox(plr)
+
+    hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+    hrp.CanCollide = collisionEnabled
+
     local viz
     local billboard
+
+    if hitboxVisual then
+        viz = Instance.new("Part")
+        viz.Anchored = true
+        viz.CanCollide = false
+        viz.CanTouch = false
+        viz.CanQuery = false
+        viz.Massless = true
+        viz.Transparency = 0.3
+        viz.Color = Color3.fromRGB(255,0,0)
+        viz.Material = Enum.Material.Neon
+        viz.Parent = workspace
+    end
+
+    if hitboxBillboard then
+        billboard = Instance.new("BillboardGui")
+        billboard.Adornee = hrp
+        billboard.AlwaysOnTop = true
+        billboard.Size = UDim2.new(4,0,4,0)
+        billboard.StudsOffset = Vector3.new(0,3,0)
+        billboard.Parent = char
+
+        local f = Instance.new("Frame")
+        f.Size = UDim2.fromScale(1,1)
+        f.BackgroundColor3 = Color3.fromRGB(255,0,0)
+        f.BackgroundTransparency = 0.25
+        f.BorderSizePixel = 0
+        f.Parent = billboard
+    end
+
+    local conn
+    conn = RunService.RenderStepped:Connect(function()
+        if not hrp.Parent then
+            clearHitbox(plr)
+            return
+        end
+
+        if viz then
+            viz.CFrame = hrp.CFrame
+            viz.Size = hrp.Size
+        end
+    end)
+
+    hitboxData[plr] = {
+        conn = conn,
+        viz = viz,
+        billboard = billboard
+    }
+end
+
+reapplyHitboxes = function()
+    for plr,_ in pairs(hitboxData) do
+        clearHitbox(plr)
+    end
+
+    for _,p in pairs(Players:GetPlayers()) do
+        applyHitbox(p)
+    end
+end
 
 
 -- RED BOX VISUAL
@@ -253,7 +327,6 @@ if hitboxVisual then
     viz.CastShadow = false
 end
 
--- BILLBOARD ESP
 -- BILLBOARD ESP
 if hitboxBillboard then
     billboard = Instance.new("BillboardGui")
