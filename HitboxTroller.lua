@@ -101,12 +101,12 @@ tag.Value = "Main"
 mainFrame.Visible = true
 
 -- HITBOX VARIABLES
--- HITBOX VARIABLES
 local hitboxEnabled=false
 local hitboxSize=8
 local hitboxVisual=false
 local hitboxBillboard=false
 local hitboxData={}
+local reapplyHitboxes
 
 -- HITBOX UI
 local hitboxToggle = Instance.new("TextButton",mainFrame)
@@ -238,8 +238,6 @@ if not hrp then return end
     end
     local viz
     local billboard
-  local viz
-local billboard
 
 -- RED BOX VISUAL
 if hitboxVisual then
@@ -255,7 +253,6 @@ if hitboxVisual then
 end
 
 -- BILLBOARD ESP
--- BILLBOARD ESP
 if hitboxBillboard then
     billboard = Instance.new("BillboardGui")
     billboard.Name = "ESP_" .. plr.Name
@@ -265,7 +262,7 @@ if hitboxBillboard then
     billboard.Size = UDim2.new(4, 0, 4, 0)
     billboard.StudsOffset = Vector3.new(0, 3, 0)
     billboard.ResetOnSpawn = false
-    billboard.MaxDistance = 100000
+    billboard.MaxDistance = 10000
 
 
     local bbFrame = Instance.new("Frame")
@@ -295,7 +292,7 @@ end
     hitboxData[plr]={conn=conn,viz=viz,billboard=billboard}
 end
 
-local function reapplyHitboxes()
+reapplyHitboxes = function()
     for _,v in pairs(hitboxData) do
         if v.conn then v.conn:Disconnect() end
         if v.viz then v.viz:Destroy() end
