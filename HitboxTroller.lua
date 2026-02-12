@@ -278,7 +278,7 @@ if hitboxBillboard then
     Instance.new("UICorner", bbFrame)
 end
 
-
+    hrp.Size = Vector3.new(hitboxSize,hitboxSize,hitboxSize)
     local conn
     conn = RunService.RenderStepped:Connect(function()
        if not character or not character.Parent then
@@ -289,7 +289,6 @@ end
 end
 
         end
-        hrp.Size=Vector3.new(hitboxSize,hitboxSize,hitboxSize)
         hrp.CanCollide = collisionEnabled
         if viz then viz.CFrame=hrp.CFrame viz.Size=hrp.Size end
     end)
