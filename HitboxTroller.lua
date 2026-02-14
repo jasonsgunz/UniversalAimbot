@@ -197,7 +197,7 @@ end
 
     if hitboxBillboard then
         billboard = Instance.new("BillboardGui")
-        billboard.Parent = player.PlayerGui
+        billboard.Parent = hrp
         billboard.Adornee = hrp
         billboard.Size = UDim2.new(4,0,4,0)
         billboard.AlwaysOnTop = true
@@ -285,7 +285,7 @@ for _,p in pairs(Players:GetPlayers()) do
 end
   local conn
 conn = RunService.RenderStepped:Connect(function()
-    if not hrp.Parent then
+    if not hrp or not hrp.Parent then
         if viz then viz:Destroy() end
         if billboard then billboard:Destroy() end
         conn:Disconnect()
