@@ -339,6 +339,25 @@ Players.PlayerAdded:Connect(function(p)
 end)
 for _,p in pairs(Players:GetPlayers()) do
     p.CharacterAdded:Connect(function() task.wait(0.1) applyHitbox(p) end)
+    local conn
+conn = RunService.RenderStepped:Connect(function()
+    if not hrp.Parent then
+        if viz then viz:Destroy() end
+        if billboard then billboard:Destroy() end
+        conn:Disconnect()
+        return
+    end
+
+    hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+    hrp.CanCollide = collisionEnabled
+
+    if viz then
+        viz.CFrame = hrp.CFrame
+        viz.Size = hrp.Size
+    end
+end)
+
+hitboxData[plr] = {conn=conn, viz=viz, billboard=billboard}
 end
 
 -- SELF SECTION
@@ -429,28 +448,13 @@ RunService.RenderStepped:Connect(function()
     if not hum then return end
 
     -- SPEED
-if speedConn then speedConn:Disconnect() end
-speedConn = RunService.RenderStepped:Connect(function()
-    local char = player.Character
-    if not char then return end
-    local hum = char:FindFirstChildWhichIsA("Humanoid")
-    if not hum then return end
-
     if selfOptions.speed.enabled then
         hum.WalkSpeed = tonumber(selfOptions.speed.powerBox.Text) or selfOptions.speed.value
     else
         hum.WalkSpeed = 16
     end
-end)
 
     -- JUMP
-if jumpConn then jumpConn:Disconnect() end
-jumpConn = RunService.RenderStepped:Connect(function()
-    local char = player.Character
-    if not char then return end
-    local hum = char:FindFirstChildWhichIsA("Humanoid")
-    if not hum then return end
-
     if selfOptions.jump.enabled then
         hum.JumpPower = tonumber(selfOptions.jump.powerBox.Text) or selfOptions.jump.value
         hum.UseJumpPower = true
