@@ -303,24 +303,6 @@ local function applyHitbox(plr)
     end
 end
 
-
-
-    local conn
-    conn = RunService.RenderStepped:Connect(function()
-        if not hrp.Parent then
-            if viz then viz:Destroy() end
-            if billboard then billboard:Destroy() end
-            conn:Disconnect()
-            return
-
-        end
-        hrp.Size=Vector3.new(hitboxSize,hitboxSize,hitboxSize)
-        hrp.CanCollide = collisionEnabled
-        if viz then viz.CFrame=hrp.CFrame viz.Size=hrp.Size end
-    end)
-    hitboxData[plr]={conn=conn,viz=viz,billboard=billboard}
-end
-
 local function reapplyHitboxes()
     for _,v in pairs(hitboxData) do
         if v.conn then v.conn:Disconnect() end
