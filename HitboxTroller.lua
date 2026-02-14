@@ -1,6 +1,12 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local applyHitbox
+local removeHitbox
+local reapplyHitboxes
+local speedConn
+local jumpConn
+local hitboxConn
 
 local player = Players.LocalPlayer
 repeat task.wait() until player
@@ -207,7 +213,6 @@ local function findBestHitboxPart(character)
         end
     end
 
-    -- fallback biggest part
     local biggest,size=nil,0
     for _,v in ipairs(character:GetChildren()) do
         if v:IsA("BasePart") then
@@ -241,7 +246,6 @@ local function applyHitbox(plr)
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
 
-    -- remove old
     if hrp:FindFirstChild("HitboxExpander") then
         hrp.HitboxExpander:Destroy()
     end
@@ -290,7 +294,7 @@ local function applyHitbox(plr)
         billboard.Size = UDim2.new(4, 0, 4, 0)
         billboard.StudsOffset = Vector3.new(0, 3, 0)
         billboard.ResetOnSpawn = false
-        billboard.Parent = hrp   -- SAFE (not CoreGui)
+        billboard.Parent = hrp   
 
         local frame = Instance.new("Frame")
         frame.Size = UDim2.fromScale(1,1)
@@ -425,13 +429,28 @@ RunService.RenderStepped:Connect(function()
     if not hum then return end
 
     -- SPEED
+if speedConn then speedConn:Disconnect() end
+speedConn = RunService.RenderStepped:Connect(function()
+    local char = player.Character
+    if not char then return end
+    local hum = char:FindFirstChildWhichIsA("Humanoid")
+    if not hum then return end
+
     if selfOptions.speed.enabled then
         hum.WalkSpeed = tonumber(selfOptions.speed.powerBox.Text) or selfOptions.speed.value
     else
         hum.WalkSpeed = 16
     end
+end)
 
     -- JUMP
+if jumpConn then jumpConn:Disconnect() end
+jumpConn = RunService.RenderStepped:Connect(function()
+    local char = player.Character
+    if not char then return end
+    local hum = char:FindFirstChildWhichIsA("Humanoid")
+    if not hum then return end
+
     if selfOptions.jump.enabled then
         hum.JumpPower = tonumber(selfOptions.jump.powerBox.Text) or selfOptions.jump.value
         hum.UseJumpPower = true
