@@ -485,3 +485,12 @@ UserInputService.InputEnded:Connect(function(input,gp)
     if input.KeyCode == Enum.KeyCode.A then ctrl.l=0 end
     if input.KeyCode == Enum.KeyCode.D then ctrl.r=0 end
 end)
+
+pcall(function()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "LOADED!",
+        Text = "This Script was made by jasonsgunz on Github. Show Love!",
+        Icon = "rbxassetid://6031094670",
+        Duration = 6
+    })
+end)
