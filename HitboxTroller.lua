@@ -190,7 +190,7 @@ end
         viz.Parent = workspace
         viz.Anchored = true
         viz.CanCollide = false
-        viz.Transparency = 0.3
+        viz.Transparency = 0.55
         viz.Color = Color3.fromRGB(255,0,0)
         viz.Material = Enum.Material.Neon
     end
