@@ -186,14 +186,32 @@ end
     local billboard
 
     if hitboxVisual then
-        viz = Instance.new("Part")
-        viz.Parent = workspace
-        viz.Anchored = true
-        viz.CanCollide = false
-        viz.Transparency = 0.55
-        viz.Color = Color3.fromRGB(255,0,0)
-        viz.Material = Enum.Material.Neon
-    end
+    viz = Instance.new("Part")
+    viz.Size = hrp.Size
+    viz.CFrame = hrp.CFrame
+    viz.Anchored = true
+    viz.CanCollide = false
+    viz.Transparency = 0.66
+    viz.Color = Color3.fromRGB(255,0,0)
+    viz.Material = Enum.Material.Neon
+    viz.Parent = workspace
+    viz.CastShadow = false
+
+    local followConn
+    followConn = RunService.RenderStepped:Connect(function()
+        if not hrp or not hrp.Parent then
+            viz:Destroy()
+            followConn:Disconnect()
+            return
+        end
+        viz.CFrame = hrp.CFrame
+        viz.Size = hrp.Size
+    end)
+
+    hitboxData[plr] = hitboxData[plr] or {}
+    hitboxData[plr].vizConn = followConn
+end
+
 
     if hitboxBillboard then
         billboard = Instance.new("BillboardGui")
