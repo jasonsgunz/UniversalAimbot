@@ -139,7 +139,7 @@ Instance.new("UICorner", visualToggle).CornerRadius = UDim.new(0,6)
 local billboardToggle = Instance.new("TextButton", mainFrame)
 billboardToggle.Position = UDim2.fromOffset(10,100)
 billboardToggle.Size = UDim2.fromOffset(140,35)
-billboardToggle.Text = "Billboard: OFF"
+billboardToggle.Text = "Box ESP: OFF"
 billboardToggle.BackgroundColor3 = Color3.fromRGB(200,50,50)
 Instance.new("UICorner", billboardToggle).CornerRadius = UDim.new(0,6)
 
@@ -186,11 +186,12 @@ end
     local billboard
 
   if hitboxVisual then
-    viz = Instance.new("Part")
+    local viz = Instance.new("Part")
     viz.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
     viz.Anchored = true
     viz.CanCollide = false
-    viz.Transparency = 0.7
+    viz.Massless = true
+    viz.Transparency = 0.75
     viz.Color = Color3.fromRGB(255,0,0)
     viz.Material = Enum.Material.Neon
     viz.CastShadow = false
@@ -210,6 +211,7 @@ end
     hitboxData[plr].viz = viz
     hitboxData[plr].vizConn = followConn
 end
+
 
     if hitboxBillboard then
         billboard = Instance.new("BillboardGui")
@@ -281,7 +283,7 @@ end)
 
 billboardToggle.MouseButton1Click:Connect(function()
     hitboxBillboard = not hitboxBillboard
-    billboardToggle.Text = "Billboard: "..(hitboxBillboard and "ON" or "OFF")
+    billboardToggle.Text = "Box ESP: "..(hitboxBillboard and "ON" or "OFF")
     billboardToggle.BackgroundColor3 =
         hitboxBillboard and Color3.fromRGB(60,160,60)
         or Color3.fromRGB(200,50,50)
