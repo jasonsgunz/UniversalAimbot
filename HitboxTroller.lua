@@ -186,7 +186,7 @@ end
     local billboard
 
 if hitboxVisual then
-    local viz = Instance.new("Part")
+    viz = Instance.new("Part")
     viz.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
     viz.Anchored = true
     viz.CanCollide = false
