@@ -325,6 +325,10 @@ local selfOptions={
     jump={value=50,enabled=false,key=Enum.KeyCode.Y},
     fly={value=1,enabled=false,key=Enum.KeyCode.U} -- DEFAULT FLY SPEED = 1
 }
+-- ANTI FLING VARIABLES
+local antiFlingEnabled = false
+local antiFlingConn
+local antiFlingLockCF
 
 local yStart=10
 for name,opt in pairs(selfOptions) do
@@ -353,6 +357,13 @@ for name,opt in pairs(selfOptions) do
     powerBox.TextColor3 = Color3.fromRGB(255,255,255)
     Instance.new("UICorner", powerBox).CornerRadius=UDim.new(0,6)
     opt.powerBox = powerBox
+
+    local antiBtn = Instance.new("TextButton", selfFrame)
+    antiBtn.Position = UDim2.fromOffset(10, yStart)
+    antiBtn.Size = UDim2.fromOffset(140,35)
+    antiBtn.Text = "Anti Fling: OFF"
+    antiBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+    Instance.new("UICorner", antiBtn).CornerRadius = UDim.new(0,6)
 
     yStart=yStart+45
 end
@@ -474,6 +485,37 @@ local function stopFly()
     tpwalking=false
 end
 
+-- ANTI FLING FUNCTIONS
+local function startAntiFling()
+    antiFlingConn = RunService.Heartbeat:Connect(function()
+        local char = player.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        if not antiFlingLockCF then
+            antiFlingLockCF = hrp.CFrame
+        end
+
+        local dist = (hrp.Position - antiFlingLockCF.Position).Magnitude
+        if dist > 3 then
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            hrp.AssemblyAngularVelocity = Vector3.zero
+            hrp.CFrame = antiFlingLockCF
+        else
+            antiFlingLockCF = antiFlingLockCF:Lerp(hrp.CFrame, 0.05)
+        end
+    end)
+end
+
+local function stopAntiFling()
+    if antiFlingConn then
+        antiFlingConn:Disconnect()
+        antiFlingConn = nil
+    end
+    antiFlingLockCF = nil
+end
+
 -- FLY TOGGLE
 selfOptions.fly.toggleBtn.MouseButton1Click:Connect(function()
     selfOptions.fly.enabled = not selfOptions.fly.enabled
@@ -484,6 +526,20 @@ selfOptions.fly.toggleBtn.MouseButton1Click:Connect(function()
         spawn(startFly)
     elseif not selfOptions.fly.enabled and flying then
         stopFly()
+    end
+end)
+
+antiBtn.MouseButton1Click:Connect(function()
+    antiFlingEnabled = not antiFlingEnabled
+    antiBtn.Text = "Anti Fling: "..(antiFlingEnabled and "ON" or "OFF")
+    antiBtn.BackgroundColor3 =
+        antiFlingEnabled and Color3.fromRGB(60,160,60)
+        or Color3.fromRGB(200,50,50)
+
+    if antiFlingEnabled then
+        startAntiFling()
+    else
+        stopAntiFling()
     end
 end)
 
