@@ -185,13 +185,12 @@ end
     local viz
     local billboard
 
-  if hitboxVisual then
+if hitboxVisual then
     local viz = Instance.new("Part")
     viz.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
     viz.Anchored = true
     viz.CanCollide = false
-    viz.Massless = true
-    viz.Transparency = 0.75
+    viz.Transparency = 0.7
     viz.Color = Color3.fromRGB(255,0,0)
     viz.Material = Enum.Material.Neon
     viz.CastShadow = false
