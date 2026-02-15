@@ -185,15 +185,15 @@ end
     local viz
     local billboard
 
-    if hitboxVisual then
+   if hitboxVisual then
     viz = Instance.new("Part")
-    viz.Size = hrp.Size
-    viz.CFrame = hrp.CFrame
     viz.Anchored = true
     viz.CanCollide = false
-    viz.Transparency = 0.66
+    viz.Transparency = 0.7      -- ghost look
     viz.Color = Color3.fromRGB(255,0,0)
     viz.Material = Enum.Material.Neon
+    viz.Size = hrp.Size
+    viz.CFrame = hrp.CFrame
     viz.Parent = workspace
     viz.CastShadow = false
 
@@ -205,12 +205,14 @@ end
             return
         end
         viz.CFrame = hrp.CFrame
-        viz.Size = hrp.Size
+        viz.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
     end)
 
     hitboxData[plr] = hitboxData[plr] or {}
+    hitboxData[plr].viz = viz
     hitboxData[plr].vizConn = followConn
 end
+
 
 
     if hitboxBillboard then
