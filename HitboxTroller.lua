@@ -495,6 +495,32 @@ selfOptions.fly.toggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- ANTI FLING BUTTON
+local antiFlingBtn = Instance.new("TextButton", selfFrame)
+antiFlingBtn.Position = UDim2.fromOffset(10, yStart)
+antiFlingBtn.Size = UDim2.fromOffset(140, 35)
+antiFlingBtn.Text = "Anti-Fling: OFF"
+antiFlingBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+antiFlingBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", antiFlingBtn).CornerRadius = UDim.new(0,6)
+
+yStart = yStart + 45
+
+antiFlingBtn.MouseButton1Click:Connect(function()
+    antiFlingEnabled = not antiFlingEnabled
+    
+    antiFlingBtn.Text = "Anti-Fling: "..(antiFlingEnabled and "ON" or "OFF")
+    antiFlingBtn.BackgroundColor3 =
+        antiFlingEnabled and Color3.fromRGB(60,160,60)
+        or Color3.fromRGB(200,50,50)
+
+    if antiFlingEnabled then
+        startAntiFling()
+    else
+        stopAntiFling()
+    end
+end)
+
 -- ANTI-FLING
 local antiFlingEnabled = false
 local antiFlingConn
@@ -538,32 +564,6 @@ local function stopAntiFling()
     end
     lastSafeCF = nil
 end
-
--- ANTI FLING BUTTON
-local antiFlingBtn = Instance.new("TextButton", selfFrame)
-antiFlingBtn.Position = UDim2.fromOffset(10, yStart)
-antiFlingBtn.Size = UDim2.fromOffset(140, 35)
-antiFlingBtn.Text = "Anti-Fling: OFF"
-antiFlingBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-antiFlingBtn.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", antiFlingBtn).CornerRadius = UDim.new(0,6)
-
-yStart = yStart + 45
-
-antiFlingBtn.MouseButton1Click:Connect(function()
-    antiFlingEnabled = not antiFlingEnabled
-    
-    antiFlingBtn.Text = "Anti-Fling: "..(antiFlingEnabled and "ON" or "OFF")
-    antiFlingBtn.BackgroundColor3 =
-        antiFlingEnabled and Color3.fromRGB(60,160,60)
-        or Color3.fromRGB(200,50,50)
-
-    if antiFlingEnabled then
-        startAntiFling()
-    else
-        stopAntiFling()
-    end
-end)
 
 
 -- FLY WASD CONTROLS
