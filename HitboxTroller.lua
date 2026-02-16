@@ -555,7 +555,6 @@ UserInputService.InputEnded:Connect(function(input,gp)
     if input.KeyCode == Enum.KeyCode.D then ctrl.r=0 end
 end)
 
--- ===== FLY GAME BLOCK =====
 local blockedPlaceIds = {
     2788229376
 }
