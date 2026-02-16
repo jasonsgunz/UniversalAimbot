@@ -555,6 +555,38 @@ UserInputService.InputEnded:Connect(function(input,gp)
     if input.KeyCode == Enum.KeyCode.D then ctrl.r=0 end
 end)
 
+-- GAME DETECTION BLOCK
+local blockedPlaceIds = {
+    2788229376,
+    -- let free
+}
+
+local function disableButton(btn)
+    if not btn then return end
+    btn.Active = false
+    btn.AutoButtonColor = false
+    btn.BackgroundColor3 = Color3.fromRGB(80,80,80)
+    btn.Text = btn.Text .. "\n(not supported yet)"
+end
+
+local function isBlockedPlace()
+    for _,id in ipairs(blockedPlaceIds) do
+        if game.PlaceId == id then
+            return true
+        end
+    end
+    return false
+end
+
+if isBlockedPlace() then
+    
+    selfOptions.fly.enabled = false
+    disableButton(selfOptions.fly.toggleBtn)
+
+    selfOptions.speed.enabled = false
+    disableButton(selfOptions.speed.toggleBtn)
+end
+
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "VERSION 1.2",
