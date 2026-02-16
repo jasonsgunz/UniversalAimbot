@@ -186,7 +186,6 @@ end
     local billboard
 
 if hitboxVisual then
-    local viz = Instance.new("Part")
     viz = Instance.new("Part")
     viz.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
     viz.Anchored = true
@@ -238,7 +237,8 @@ conn = RunService.RenderStepped:Connect(function()
 
     hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
     hrp.CanCollide = collisionEnabled
-
+    hrp.AssemblyLinearVelocity = Vector3.new(hrp.AssemblyLinearVelocity.X, 0, hrp.AssemblyLinearVelocity.Z)
+            
     if viz then
         viz.CFrame = hrp.CFrame
         viz.Size = hrp.Size
@@ -298,7 +298,6 @@ collisionToggle.MouseButton1Click:Connect(function()
         collisionEnabled and Color3.fromRGB(60,160,60)
         or Color3.fromRGB(200,50,50)
 
-    -- ONLY change CanCollide, DO NOT reapply hitboxes
     for _,plr in pairs(Players:GetPlayers()) do
         if plr ~= player and plr.Character then
             local hrp = findBestHitboxPart(plr.Character)
@@ -556,42 +555,10 @@ UserInputService.InputEnded:Connect(function(input,gp)
     if input.KeyCode == Enum.KeyCode.D then ctrl.r=0 end
 end)
 
--- ANTI-FLING
-local antiFlingEnabled = false
-local antiFlingConn
-local lockCF
-
-local function startAntiFling()
-    antiFlingConn = RunService.Heartbeat:Connect(function()
-        local char = player.Character
-        if not char then return end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-
-        if not lockCF then
-            lockCF = hrp.CFrame
-        end
-
-        local dist = (hrp.Position - lockCF.Position).Magnitude
-        if dist > 3 then
-            hrp.AssemblyLinearVelocity = Vector3.zero
-            hrp.AssemblyAngularVelocity = Vector3.zero
-            hrp.CFrame = lockCF
-        else
-            lockCF = lockCF:Lerp(hrp.CFrame, 0.05)
-        end
-    end)
-end
-
-local function stopAntiFling()
-    if antiFlingConn then antiFlingConn:Disconnect() end
-    lockCF = nil
-end
-
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "LOADED! VERSION 1.2",
-        Text = "This Script was made by jasonsgunz on Github. Show Love!",
+        Title = "VERSION 1.2",
+        Text = "This Script was made by jasonsgunz on Github.",
         Icon = "rbxassetid://6031094670",
         Duration = 6
     })
