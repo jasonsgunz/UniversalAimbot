@@ -1,7 +1,7 @@
-Where this Script works:
+Update Log 1.2:
 
-100% Sure it works: Games with no custom Hitbox neither anti cheat.
+-- Added Anti-Fling (so no delta kids annoy u)
+-- Fixxed ALOT of issues
+-- fixxed bugs bla bla bla
 
-Where it partially works: Games with weird anti cheat example: da hood (vizualizer might not work since i didnt find a universal fix yet)
-
-Games where it wont/might work: games with custom hitboxes and really good anti cheat. (NOTE: Not every good anti cheat can detect my script so it might work)
+("NOTE: THIS SCRIPT DOESNT WORK IN EVERY GAME I WILL ADD NEW CHARACTER RIGS TO IT ASAP")
