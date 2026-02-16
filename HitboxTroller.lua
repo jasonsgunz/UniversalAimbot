@@ -298,7 +298,15 @@ collisionToggle.MouseButton1Click:Connect(function()
         collisionEnabled and Color3.fromRGB(60,160,60)
         or Color3.fromRGB(200,50,50)
 
-    reapplyHitboxes()
+    -- ONLY change CanCollide, DO NOT reapply hitboxes
+    for _,plr in pairs(Players:GetPlayers()) do
+        if plr ~= player and plr.Character then
+            local hrp = findBestHitboxPart(plr.Character)
+            if hrp then
+                hrp.CanCollide = collisionEnabled
+            end
+        end
+    end
 end)
 
 Players.PlayerAdded:Connect(function(p)
