@@ -497,26 +497,37 @@ end)
 
 -- ANTI-FLING
 local antiFlingEnabled = false
-
-local antiFlingBtn = Instance.new("TextButton", selfFrame)
-antiFlingBtn.Position = UDim2.fromOffset(10, yStart)
-antiFlingBtn.Size = UDim2.fromOffset(140, 35)
-antiFlingBtn.Text = "Anti-Fling: OFF"
-antiFlingBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-Instance.new("UICorner", antiFlingBtn).CornerRadius = UDim.new(0,6)
-
-yStart = yStart + 45
-
 local antiFlingConn
+local lastSafeCF
+
 local function startAntiFling()
-    local player = game.Players.LocalPlayer
-    antiFlingConn = game:GetService("RunService").Heartbeat:Connect(function()
+    lastSafeCF = nil
+
+    antiFlingConn = RunService.Heartbeat:Connect(function()
+        if not antiFlingEnabled then return end
+
         local char = player.Character
         if not char then return end
+        
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hrp then return end
-        hrp.AssemblyLinearVelocity = Vector3.zero
-        hrp.AssemblyAngularVelocity = Vector3.zero
+
+        if not lastSafeCF then
+            lastSafeCF = hrp.CFrame
+            return
+        end
+
+        local dist = (hrp.Position - lastSafeCF.Position).Magnitude
+
+        if dist > 25 then
+                
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            hrp.AssemblyAngularVelocity = Vector3.zero
+            hrp.CFrame = lastSafeCF
+        else
+ 
+            lastSafeCF = lastSafeCF:Lerp(hrp.CFrame, 0.2)
+        end
     end)
 end
 
@@ -525,19 +536,9 @@ local function stopAntiFling()
         antiFlingConn:Disconnect()
         antiFlingConn = nil
     end
+    lastSafeCF = nil
 end
 
-antiFlingBtn.MouseButton1Click:Connect(function()
-    antiFlingEnabled = not antiFlingEnabled
-    antiFlingBtn.Text = "Anti-Fling: "..(antiFlingEnabled and "ON" or "OFF")
-    antiFlingBtn.BackgroundColor3 = antiFlingEnabled and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
-    
-    if antiFlingEnabled then
-        startAntiFling()
-    else
-        stopAntiFling()
-    end
-end)
 
 -- FLY WASD CONTROLS
 UserInputService.InputBegan:Connect(function(input,gp)
