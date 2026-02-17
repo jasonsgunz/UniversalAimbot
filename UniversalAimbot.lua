@@ -22,7 +22,6 @@ local antiFlingEnabled = false
 local tpwalking = false
 local ctrl = {f=0,b=0,l=0,r=0}
 
--- [[ HITBOX CONFIG ]]
 local hitboxEnabled = false
 local hitboxSize = 8
 local hitboxVisual = false
@@ -30,10 +29,8 @@ local hitboxBillboard = false
 local hitboxData = {}
 local collisionEnabled = false
 
--- [[ CLEANUP TRACKER ]]
 local _Connections = {}
 
--- [[ HITBOX LOGIC ]]
 local function findBestHitboxPart(character)
     if not character then return nil end
     local priority = {"HumanoidRootPart","UpperTorso","LowerTorso","Torso","Head"}
@@ -106,7 +103,6 @@ local function reapplyHitboxes()
     for _,p in pairs(Players:GetPlayers()) do applyHitbox(p) end
 end
 
--- [[ UI SETUP ]]
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
 ScreenGui.Name = "Universal_V15_Final_Clean"
 ScreenGui.ResetOnSpawn = false
@@ -148,7 +144,6 @@ Instance.new("UIListLayout", MainPage).HorizontalAlignment = "Center"; MainPage.
 Instance.new("UIListLayout", SelfPage).HorizontalAlignment = "Center"; SelfPage.UIListLayout.Padding = UDim.new(0, 8)
 Instance.new("UIListLayout", HitPage).HorizontalAlignment = "Center"; HitPage.UIListLayout.Padding = UDim.new(0, 8)
 
--- [[ MAIN ELEMENTS ]]
 local Sliding = false
 local PredRow = Instance.new("Frame", MainPage); PredRow.Size = UDim2.new(0, 340, 0, 45); PredRow.BackgroundTransparency = 1
 local PredTxt = Instance.new("TextLabel", PredRow); PredTxt.Size = UDim2.new(1, 0, 0, 20); PredTxt.BackgroundTransparency = 1; PredTxt.Text = "Prediction: 0%"; PredTxt.TextColor3 = Color3.new(1,1,1); PredTxt.Font = "Gotham"; PredTxt.TextSize = 12
@@ -175,7 +170,6 @@ ModeBtn.MouseButton1Click:Connect(function() Mode = (Mode == "Hold" and "Toggle"
 local PartBtn = ModeBtn:Clone(); PartBtn.Parent = MainPage; PartBtn.Text = "TARGET: HumanoidRootPart"
 local ChecksBtn = ModeBtn:Clone(); ChecksBtn.Parent = MainPage; ChecksBtn.Text = "CHECKS"
 
--- [[ DROPDOWN LOGIC ]]
 local function OpenDrop(btn, height)
     for _, v in pairs(DropdownFrame:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     DropdownFrame.Position = UDim2.fromOffset(btn.AbsolutePosition.X + (btn.AbsoluteSize.X / 2) - 100, btn.AbsolutePosition.Y + btn.AbsoluteSize.Y + 5)
@@ -200,7 +194,6 @@ ChecksBtn.MouseButton1Click:Connect(function()
     addC("ALIVE", "Alive"); addC("TEAM", "Team"); addC("WALL", "Wall")
 end)
 
--- [[ SELF SECTION ]]
 local function updateSelfBtn(btn, state, name)
     btn.BackgroundColor3 = state and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(200, 50, 50)
     btn.Text = name:sub(1,1):upper()..name:sub(2)..": "..(state and "ON" or "OFF")
@@ -245,7 +238,6 @@ antiFlingBtn.MouseButton1Click:Connect(function()
     antiFlingBtn.BackgroundColor3 = antiFlingEnabled and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
 end)
 
--- [[ HITBOX SECTION ]]
 local function updateHitBtn(btn, state, txt)
     btn.BackgroundColor3 = state and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(200, 50, 50)
     btn.Text = txt .. ": " .. (state and "ON" or "OFF")
@@ -266,7 +258,6 @@ bTog.MouseButton1Click:Connect(function() hitboxBillboard = not hitboxBillboard;
 local cTog = Instance.new("TextButton", HitPage); cTog.Size = UDim2.new(0, 340, 0, 35); updateHitBtn(cTog, collisionEnabled, "Collision"); Instance.new("UICorner", cTog)
 cTog.MouseButton1Click:Connect(function() collisionEnabled = not collisionEnabled; updateHitBtn(cTog, collisionEnabled, "Collision"); reapplyHitboxes() end)
 
--- [[ CORE LOGIC LOOP ]]
 table.insert(_Connections, RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChildOfClass("Humanoid") then
@@ -280,9 +271,11 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
             end
         end
     end
+    
     if Active then
         local function isValid(p) return p and p.Character and p.Character:FindFirstChild(TargetPartName) and (not Checks.Alive or (p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health > 0)) end
-        if not isValid(LockedPlayer) then
+        
+        if not LockedPlayer then
             local target, dist = nil, math.huge
             for _, p in pairs(Players:GetPlayers()) do
                 if p ~= LocalPlayer and isValid(p) then
@@ -294,15 +287,28 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
                 end
             end
             LockedPlayer = target
+        else
+            if not isValid(LockedPlayer) then
+                if Mode == "Toggle" then
+                    if Checks.Alive then
+                        Active = false
+                        LockedPlayer = nil
+                    end
+                else
+                    LockedPlayer = nil
+                end
+            end
         end
-        if LockedPlayer and LockedPlayer.Character and LockedPlayer.Character:FindFirstChild(TargetPartName) then
+        
+        if LockedPlayer and isValid(LockedPlayer) then
             local p = LockedPlayer.Character[TargetPartName]
             Camera.CFrame = CFrame.new(Camera.CFrame.Position, p.Position + (p.Velocity * (Prediction / 100)))
         end
-    else LockedPlayer = nil end
+    else 
+        LockedPlayer = nil 
+    end
 end))
 
--- [[ INPUTS ]]
 table.insert(_Connections, UIS.InputBegan:Connect(function(input, gp)
     if SettingKey then Keybind = input.KeyCode; BindBtn.Text = "["..input.KeyCode.Name.."]"; SettingKey = false; return end
     for name, opt in pairs(selfOptions) do 
@@ -325,7 +331,6 @@ table.insert(_Connections, UIS.InputEnded:Connect(function(input)
     if input.KeyCode == Enum.KeyCode.A then ctrl.l=0 elseif input.KeyCode == Enum.KeyCode.D then ctrl.r=0 end
 end))
 
--- [[ TAB SWITCHING ]]
 local function switch(btn, page)
     MainPage.Visible = false; SelfPage.Visible = false; HitPage.Visible = false
     MainTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40); SelfTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40); HitTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
@@ -335,16 +340,14 @@ MainTab.MouseButton1Click:Connect(function() switch(MainTab, MainPage) end)
 SelfTab.MouseButton1Click:Connect(function() switch(SelfTab, SelfPage) end)
 HitTab.MouseButton1Click:Connect(function() switch(HitTab, HitPage) end)
 
--- [[ DRAGGING ]]
 local dragging, dragStart, startPos
 Main.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 and not Sliding then dragging = true; dragStart = input.Position; startPos = Main.Position end end)
 UIS.InputChanged:Connect(function(input) if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then local delta = input.Position - dragStart; Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y); DropdownFrame.Visible = false end end)
 UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 
--- [[ CLEANUP FUNCTION ]]
 Close.MouseButton1Click:Connect(function()
     hitboxEnabled = false; tpwalking = false; antiFlingEnabled = false
-    reapplyHitboxes()
+    reapplyHitboxes() 
     for _, c in pairs(_Connections) do c:Disconnect() end
     ScreenGui:Destroy()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
