@@ -1,156 +1,39 @@
+local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local applyHitbox
-local removeHitbox
-local reapplyHitboxes
-local speedConn
-local jumpConn
-local hitboxConn
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
-local player = Players.LocalPlayer
-repeat task.wait() until player
-local playerGui = player:WaitForChild("PlayerGui")
+local Active = false
+local Keybind = Enum.KeyCode.E
+local TargetPartName = "HumanoidRootPart"
+local Mode = "Hold"
+local Prediction = 0 
+local SettingKey = false
+local LockedPlayer = nil 
+local Checks = { Alive = false, Team = false, Wall = false }
 
-if playerGui:FindFirstChild("HitboxTroller") then
-    playerGui.HitboxTroller:Destroy()
-end
+local selfOptions = {
+    speed = {value = 16, enabled = false, key = Enum.KeyCode.T, setting = false},
+    jump = {value = 50, enabled = false, key = Enum.KeyCode.Y, setting = false},
+    fly = {value = 1, enabled = false, key = Enum.KeyCode.U, setting = false}
+}
+local antiFlingEnabled = false
+local tpwalking = false
+local ctrl = {f=0,b=0,l=0,r=0}
 
--- GUI SETUP
-local gui = Instance.new("ScreenGui")
-gui.Name = "HitboxTroller"
-gui.Parent = playerGui
-gui.ResetOnSpawn = false
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.fromOffset(400, 350)
-frame.Position = UDim2.fromScale(0.5,0.5)
-frame.AnchorPoint = Vector2.new(0.5,0.5)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,35)
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0,12)
-
--- DRAGGING
-local dragging, dragStart, startPos
-frame.InputBegan:Connect(function(input)
-    if input.UserInputType==Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType==Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
-    end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType==Enum.UserInputType.MouseButton1 then
-        dragging=false
-    end
-end)
-
--- HEADER
-local header = Instance.new("TextLabel", frame)
-header.Size = UDim2.new(1,0,0,45)
-header.BackgroundColor3 = Color3.fromRGB(45,45,50)
-header.Text = "HitboxTroller"
-header.TextColor3 = Color3.fromRGB(255,255,255)
-header.Font = Enum.Font.GothamBold
-header.TextSize = 22
-Instance.new("UICorner", header).CornerRadius = UDim.new(0,12)
-
-local closeBtn = Instance.new("TextButton", frame)
-closeBtn.Size = UDim2.fromOffset(30,30)
-closeBtn.Position = UDim2.new(1,-36,0,7)
-closeBtn.Text = "X"
-closeBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-Instance.new("UICorner", closeBtn)
-closeBtn.MouseButton1Click:Connect(function() gui:Destroy() end)
-
--- SECTIONS
-local sections = {"Main","Self"}
-local activeSection = "Main"
-local sectionButtons = {}
-for i,name in ipairs(sections) do
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.fromOffset(90,28)
-    btn.Position = UDim2.fromOffset(10+(i-1)*100,55)
-    btn.Text = name
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 16
-    btn.BackgroundColor3 = Color3.fromRGB(70,70,75)
-    Instance.new("UICorner", btn)
-    btn.MouseButton1Click:Connect(function()
-        activeSection=name
-        for _,b in pairs(sectionButtons) do b.BackgroundColor3=Color3.fromRGB(70,70,75) end
-        btn.BackgroundColor3=Color3.fromRGB(60,160,60)
-        for _,v in pairs(frame:GetChildren()) do
-            if v:IsA("Frame") and v:FindFirstChild("SectionTag") then
-                v.Visible = (v.SectionTag.Value==activeSection)
-            end
-        end
-    end)
-    sectionButtons[i]=btn
-end
-sectionButtons[1].BackgroundColor3=Color3.fromRGB(60,160,60)
-
--- MAIN SECTION
-local mainFrame = Instance.new("Frame", frame)
-mainFrame.Size = UDim2.fromOffset(380,250)
-mainFrame.Position = UDim2.fromOffset(10,90)
-mainFrame.BackgroundTransparency = 1
-local tag = Instance.new("StringValue", mainFrame)
-tag.Name = "SectionTag"
-tag.Value = "Main"
-mainFrame.Visible = true
--- HITBOX VARIABLES --
+-- [[ HITBOX CONFIG ]]
 local hitboxEnabled = false
 local hitboxSize = 8
 local hitboxVisual = false
 local hitboxBillboard = false
 local hitboxData = {}
-local collisionEnabled = true
+local collisionEnabled = false
 
--- HITBOX UI
-local hitboxToggle = Instance.new("TextButton", mainFrame)
-hitboxToggle.Position = UDim2.fromOffset(10,10)
-hitboxToggle.Size = UDim2.fromOffset(140,35)
-hitboxToggle.Text = "Hitbox: OFF"
-hitboxToggle.BackgroundColor3 = Color3.fromRGB(200,50,50)
-Instance.new("UICorner", hitboxToggle).CornerRadius = UDim.new(0,6)
+-- [[ CLEANUP TRACKER ]]
+local _Connections = {}
 
-local hitboxInput = Instance.new("TextBox", mainFrame)
-hitboxInput.Position = UDim2.fromOffset(160,10)
-hitboxInput.Size = UDim2.fromOffset(60,35)
-hitboxInput.Text = tostring(hitboxSize)
-hitboxInput.ClearTextOnFocus = false
-hitboxInput.BackgroundColor3 = Color3.fromRGB(50,50,55)
-hitboxInput.TextColor3 = Color3.fromRGB(255,255,255)
-Instance.new("UICorner", hitboxInput).CornerRadius = UDim.new(0,6)
-
-local visualToggle = Instance.new("TextButton", mainFrame)
-visualToggle.Position = UDim2.fromOffset(230,10)
-visualToggle.Size = UDim2.fromOffset(140,35)
-visualToggle.Text = "Visualizer: OFF"
-visualToggle.BackgroundColor3 = Color3.fromRGB(200,50,50)
-Instance.new("UICorner", visualToggle).CornerRadius = UDim.new(0,6)
-
-local billboardToggle = Instance.new("TextButton", mainFrame)
-billboardToggle.Position = UDim2.fromOffset(10,100)
-billboardToggle.Size = UDim2.fromOffset(140,35)
-billboardToggle.Text = "Box ESP: OFF"
-billboardToggle.BackgroundColor3 = Color3.fromRGB(200,50,50)
-Instance.new("UICorner", billboardToggle).CornerRadius = UDim.new(0,6)
-
-local collisionToggle = Instance.new("TextButton", mainFrame)
-collisionToggle.Position = UDim2.fromOffset(10,55)
-collisionToggle.Size = UDim2.fromOffset(140,35)
-collisionToggle.Text = "Collision: ON"
-collisionToggle.BackgroundColor3 = Color3.fromRGB(60,160,60)
-Instance.new("UICorner", collisionToggle).CornerRadius = UDim.new(0,6)
-
--- FIND BEST HITBOX PART
+-- [[ HITBOX LOGIC ]]
 local function findBestHitboxPart(character)
     if not character then return nil end
     local priority = {"HumanoidRootPart","UpperTorso","LowerTorso","Torso","Head"}
@@ -158,23 +41,15 @@ local function findBestHitboxPart(character)
         local part = character:FindFirstChild(name)
         if part and part:IsA("BasePart") then return part end
     end
-    for _,v in ipairs(character:GetChildren()) do
-        if v:IsA("BasePart") then return v end
-    end
+    return character:FindFirstChildOfClass("BasePart")
 end
 
--- APPLY HITBOX
 local function applyHitbox(plr)
-    if not hitboxEnabled or plr == player then return end
+    if not hitboxEnabled or plr == LocalPlayer then return end
     local char = plr.Character
     if not char then return end
-
     local hrp = findBestHitboxPart(char)
     if not hrp then return end
-if hitboxData[plr] and hitboxData[plr].conn then
-    hitboxData[plr].conn:Disconnect()
-end
-
 
     if hitboxData[plr] then
         if hitboxData[plr].conn then hitboxData[plr].conn:Disconnect() end
@@ -182,73 +57,35 @@ end
         if hitboxData[plr].billboard then hitboxData[plr].billboard:Destroy() end
     end
 
-    local viz
-    local billboard
-
-if hitboxVisual then
-    viz = Instance.new("Part")
-    viz.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-    viz.Anchored = true
-    viz.CanCollide = false
-    viz.Transparency = 0.7
-    viz.Color = Color3.fromRGB(255,0,0)
-    viz.Material = Enum.Material.Neon
-    viz.CastShadow = false
-    viz.Parent = workspace
-
-    local followConn
-    followConn = RunService.RenderStepped:Connect(function()
-        if not hrp or not hrp.Parent then
-            viz:Destroy()
-            followConn:Disconnect()
-            return
-        end
-        viz.CFrame = hrp.CFrame
-    end)
-
-    hitboxData[plr] = hitboxData[plr] or {}
-    hitboxData[plr].viz = viz
-    hitboxData[plr].vizConn = followConn
-end
-
+    local viz, billboard
+    if hitboxVisual then
+        viz = Instance.new("Part")
+        viz.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+        viz.Anchored = true; viz.CanCollide = false; viz.Transparency = 0.7
+        viz.Color = Color3.fromRGB(255,0,0); viz.Material = Enum.Material.Neon; viz.Parent = workspace
+    end
 
     if hitboxBillboard then
         billboard = Instance.new("BillboardGui")
-        billboard.Parent = hrp
-        billboard.Adornee = hrp
-        billboard.Size = UDim2.new(4,0,4,0)
-        billboard.AlwaysOnTop = true
-
-        local frame = Instance.new("Frame", billboard)
-        frame.Size = UDim2.fromScale(1,1)
-        frame.BackgroundColor3 = Color3.fromRGB(255,0,0)
-        frame.BackgroundTransparency = 0.3
-        Instance.new("UICorner", frame)
+        billboard.Parent = hrp; billboard.Adornee = hrp; billboard.Size = UDim2.new(4,0,4,0); billboard.AlwaysOnTop = true
+        local f = Instance.new("Frame", billboard); f.Size = UDim2.fromScale(1,1)
+        f.BackgroundColor3 = Color3.fromRGB(255,0,0); f.BackgroundTransparency = 0.3; Instance.new("UICorner", f)
     end
 
-local conn
-conn = RunService.RenderStepped:Connect(function()
-    if not hrp.Parent then
-        if viz then viz:Destroy() end
-        if billboard then billboard:Destroy() end
-        conn:Disconnect()
-        return
-    end
-
-    hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-    hrp.CanCollide = collisionEnabled
-    hrp.AssemblyLinearVelocity = Vector3.new(hrp.AssemblyLinearVelocity.X, 0, hrp.AssemblyLinearVelocity.Z)
-            
-    if viz then
-        viz.CFrame = hrp.CFrame
-        viz.Size = hrp.Size
-    end
-end)
-
+    local conn
+    conn = RunService.RenderStepped:Connect(function()
+        if not hrp or not hrp.Parent then
+            if viz then viz:Destroy() end
+            if billboard then billboard:Destroy() end
+            conn:Disconnect(); return
+        end
+        hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+        hrp.CanCollide = collisionEnabled
+        if viz then viz.CFrame = hrp.CFrame; viz.Size = hrp.Size end
+    end)
     hitboxData[plr] = {conn=conn,viz=viz,billboard=billboard}
 end
 
--- REAPPLY
 local function reapplyHitboxes()
     for _,v in pairs(hitboxData) do
         if v.conn then v.conn:Disconnect() end
@@ -256,379 +93,263 @@ local function reapplyHitboxes()
         if v.billboard then v.billboard:Destroy() end
     end
     hitboxData = {}
-    for _,p in pairs(Players:GetPlayers()) do
-        applyHitbox(p)
+    if not hitboxEnabled then
+        for _,p in pairs(Players:GetPlayers()) do
+            local char = p.Character
+            if char then
+                local hrp = findBestHitboxPart(char)
+                if hrp then hrp.Size = Vector3.new(2,2,1); hrp.CanCollide = true end
+            end
+        end
+        return
     end
+    for _,p in pairs(Players:GetPlayers()) do applyHitbox(p) end
 end
 
-hitboxToggle.MouseButton1Click:Connect(function()
-    hitboxEnabled=not hitboxEnabled
-    hitboxToggle.Text="Hitbox: "..(hitboxEnabled and "ON" or "OFF")
-    hitboxToggle.BackgroundColor3=hitboxEnabled and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
-    reapplyHitboxes()
+-- [[ UI SETUP ]]
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+ScreenGui.Name = "Universal_V15_Final_Clean"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 380, 0, 300); Main.Position = UDim2.new(0.5, -190, 0.5, -150)
+Main.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Main.Active = true; Main.BorderSizePixel = 0
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
+
+local DropdownFrame = Instance.new("Frame", ScreenGui)
+DropdownFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35); DropdownFrame.Visible = false; DropdownFrame.ZIndex = 100
+Instance.new("UICorner", DropdownFrame)
+Instance.new("UIListLayout", DropdownFrame).HorizontalAlignment = "Center"
+
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, -60, 0, 35); Title.Position = UDim2.new(0, 15, 0, 0); Title.BackgroundTransparency = 1
+Title.Text = "UniversalAimbot"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = "GothamBold"; Title.TextSize = 14; Title.TextXAlignment = "Left"
+
+local Close = Instance.new("TextButton", Main)
+Close.Size = UDim2.new(0, 25, 0, 25); Close.Position = UDim2.new(1, -30, 0, 5); Close.BackgroundColor3 = Color3.fromRGB(200, 50, 50); Close.Text = "X"; Close.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", Close).CornerRadius = UDim.new(0, 4)
+
+local TabHolder = Instance.new("Frame", Main)
+TabHolder.Size = UDim2.new(1, -20, 0, 30); TabHolder.Position = UDim2.new(0, 10, 0, 35); TabHolder.BackgroundTransparency = 1
+
+local MainTab = Instance.new("TextButton", TabHolder)
+MainTab.Size = UDim2.new(0, 80, 1, 0); MainTab.BackgroundColor3 = Color3.fromRGB(50, 50, 60); MainTab.Text = "MAIN"; MainTab.TextColor3 = Color3.new(1, 1, 1); MainTab.Font = "GothamBold"; Instance.new("UICorner", MainTab)
+
+local SelfTab = MainTab:Clone(); SelfTab.Parent = TabHolder; SelfTab.Position = UDim2.new(0, 85, 0, 0); SelfTab.Text = "SELF"; SelfTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+local HitTab = MainTab:Clone(); HitTab.Parent = TabHolder; HitTab.Position = UDim2.new(0, 170, 0, 0); HitTab.Text = "HITBOX"; HitTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+
+local MainPage = Instance.new("ScrollingFrame", Main)
+MainPage.Size = UDim2.new(1, 0, 1, -75); MainPage.Position = UDim2.new(0, 0, 0, 75); MainPage.BackgroundTransparency = 1; MainPage.BorderSizePixel = 0; MainPage.CanvasSize = UDim2.new(0, 0, 0, 320); MainPage.ScrollBarThickness = 0
+local SelfPage = MainPage:Clone(); SelfPage.Parent = Main; SelfPage.Visible = false
+local HitPage = MainPage:Clone(); HitPage.Parent = Main; HitPage.Visible = false
+
+Instance.new("UIListLayout", MainPage).HorizontalAlignment = "Center"; MainPage.UIListLayout.Padding = UDim.new(0, 8)
+Instance.new("UIListLayout", SelfPage).HorizontalAlignment = "Center"; SelfPage.UIListLayout.Padding = UDim.new(0, 8)
+Instance.new("UIListLayout", HitPage).HorizontalAlignment = "Center"; HitPage.UIListLayout.Padding = UDim.new(0, 8)
+
+-- [[ MAIN ELEMENTS ]]
+local Sliding = false
+local PredRow = Instance.new("Frame", MainPage); PredRow.Size = UDim2.new(0, 340, 0, 45); PredRow.BackgroundTransparency = 1
+local PredTxt = Instance.new("TextLabel", PredRow); PredTxt.Size = UDim2.new(1, 0, 0, 20); PredTxt.BackgroundTransparency = 1; PredTxt.Text = "Prediction: 0%"; PredTxt.TextColor3 = Color3.new(1,1,1); PredTxt.Font = "Gotham"; PredTxt.TextSize = 12
+local SliderBack = Instance.new("Frame", PredRow); SliderBack.Size = UDim2.new(1, -20, 0, 10); SliderBack.Position = UDim2.new(0, 10, 0, 25); SliderBack.BackgroundColor3 = Color3.fromRGB(40, 40, 45); Instance.new("UICorner", SliderBack)
+local SliderFill = Instance.new("Frame", SliderBack); SliderFill.Size = UDim2.new(0, 0, 1, 0); SliderFill.BackgroundColor3 = Color3.fromRGB(60, 160, 60); Instance.new("UICorner", SliderFill)
+
+SliderBack.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then Sliding = true end end)
+UIS.InputChanged:Connect(function(input) 
+    if Sliding and input.UserInputType == Enum.UserInputType.MouseMovement then 
+        local pos = math.clamp((input.Position.X - SliderBack.AbsolutePosition.X) / SliderBack.AbsoluteSize.X, 0, 1)
+        SliderFill.Size = UDim2.new(pos, 0, 1, 0); Prediction = math.floor(pos * 100); PredTxt.Text = "Prediction: " .. Prediction .. "%"
+    end 
 end)
-hitboxInput.FocusLost:Connect(function()
-    local val=tonumber(hitboxInput.Text)
-    if val then hitboxSize=val reapplyHitboxes() end
+UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then Sliding = false end end)
+
+local BindRow = Instance.new("Frame", MainPage); BindRow.Size = UDim2.new(0, 340, 0, 35); BindRow.BackgroundTransparency = 1
+local BindTxt = Instance.new("TextLabel", BindRow); BindTxt.Size = UDim2.new(0, 100, 1, 0); BindTxt.BackgroundTransparency = 1; BindTxt.Text = "Keybind:"; BindTxt.TextColor3 = Color3.new(1,1,1); BindTxt.Font = "Gotham"; BindTxt.TextXAlignment = "Left"
+local BindBtn = Instance.new("TextButton", BindRow); BindBtn.Size = UDim2.new(0, 80, 0, 25); BindBtn.Position = UDim2.new(0, 70, 0.5, -12); BindBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50); BindBtn.Text = "["..Keybind.Name.."]"; BindBtn.TextColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", BindBtn)
+BindBtn.MouseButton1Click:Connect(function() SettingKey = true; BindBtn.Text = "[...]" end)
+
+local ModeBtn = Instance.new("TextButton", MainPage); ModeBtn.Size = UDim2.new(0, 340, 0, 35); ModeBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50); ModeBtn.Text = "MODE: HOLD"; ModeBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", ModeBtn)
+ModeBtn.MouseButton1Click:Connect(function() Mode = (Mode == "Hold" and "Toggle" or "Hold"); ModeBtn.Text = "MODE: "..Mode:upper() end)
+
+local PartBtn = ModeBtn:Clone(); PartBtn.Parent = MainPage; PartBtn.Text = "TARGET: HumanoidRootPart"
+local ChecksBtn = ModeBtn:Clone(); ChecksBtn.Parent = MainPage; ChecksBtn.Text = "CHECKS"
+
+-- [[ DROPDOWN LOGIC ]]
+local function OpenDrop(btn, height)
+    for _, v in pairs(DropdownFrame:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    DropdownFrame.Position = UDim2.fromOffset(btn.AbsolutePosition.X + (btn.AbsoluteSize.X / 2) - 100, btn.AbsolutePosition.Y + btn.AbsoluteSize.Y + 5)
+    DropdownFrame.Size = UDim2.fromOffset(200, height); DropdownFrame.Visible = not DropdownFrame.Visible
+end
+
+PartBtn.MouseButton1Click:Connect(function() 
+    OpenDrop(PartBtn, 105) 
+    for _, n in pairs({"HumanoidRootPart", "UpperTorso", "Head"}) do 
+        local b = Instance.new("TextButton", DropdownFrame); b.Size = UDim2.new(1, 0, 0, 35); b.BackgroundColor3 = Color3.fromRGB(40, 40, 45); b.Text = n; b.TextColor3 = Color3.new(1,1,1); b.ZIndex = 101
+        b.MouseButton1Click:Connect(function() TargetPartName = n; PartBtn.Text = "TARGET: "..n; DropdownFrame.Visible = false end)
+    end 
 end)
-visualToggle.MouseButton1Click:Connect(function()
-    hitboxVisual = not hitboxVisual
-    visualToggle.Text = "Visualizer: "..(hitboxVisual and "ON" or "OFF")
-    visualToggle.BackgroundColor3 =
-        hitboxVisual and Color3.fromRGB(60,160,60)
-        or Color3.fromRGB(200,50,50)
 
-    reapplyHitboxes()
+ChecksBtn.MouseButton1Click:Connect(function() 
+    OpenDrop(ChecksBtn, 105) 
+    local function addC(txt, key)
+        local b = Instance.new("TextButton", DropdownFrame); b.Size = UDim2.new(1, 0, 0, 35); b.BackgroundColor3 = Color3.fromRGB(40, 40, 45); b.ZIndex = 101
+        b.Text = txt..": "..(Checks[key] and "ON" or "OFF"); b.TextColor3 = Checks[key] and Color3.new(0,1,0) or Color3.new(1,0,0)
+        b.MouseButton1Click:Connect(function() Checks[key] = not Checks[key]; b.Text = txt..": "..(Checks[key] and "ON" or "OFF"); b.TextColor3 = Checks[key] and Color3.new(0,1,0) or Color3.new(1,0,0) end)
+    end
+    addC("ALIVE", "Alive"); addC("TEAM", "Team"); addC("WALL", "Wall")
 end)
 
-billboardToggle.MouseButton1Click:Connect(function()
-    hitboxBillboard = not hitboxBillboard
-    billboardToggle.Text = "Box ESP: "..(hitboxBillboard and "ON" or "OFF")
-    billboardToggle.BackgroundColor3 =
-        hitboxBillboard and Color3.fromRGB(60,160,60)
-        or Color3.fromRGB(200,50,50)
+-- [[ SELF SECTION ]]
+local function updateSelfBtn(btn, state, name)
+    btn.BackgroundColor3 = state and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(200, 50, 50)
+    btn.Text = name:sub(1,1):upper()..name:sub(2)..": "..(state and "ON" or "OFF")
+end
 
-    reapplyHitboxes()
+function startFly()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    hum.PlatformStand = true; tpwalking = true
+    local bg = Instance.new("BodyGyro", root); bg.P = 9e4; bg.MaxTorque = Vector3.new(9e9,9e9,9e9); bg.CFrame = root.CFrame
+    local bv = Instance.new("BodyVelocity", root); bv.MaxForce = Vector3.new(9e9,9e9,9e9); bv.Velocity = Vector3.zero
+    while tpwalking and char.Parent and ScreenGui.Parent do
+        RunService.RenderStepped:Wait()
+        local moveSpeed = (tonumber(selfOptions.fly.powerBox.Text) or selfOptions.fly.value)*30
+        bv.Velocity = ((Camera.CFrame.LookVector * (ctrl.f-ctrl.b)) + (Camera.CFrame.RightVector * (ctrl.r-ctrl.l))) * moveSpeed
+        bg.CFrame = Camera.CFrame
+    end
+    bv:Destroy(); bg:Destroy(); if hum then hum.PlatformStand = false end
+end
+
+for name, opt in pairs(selfOptions) do
+    local row = Instance.new("Frame", SelfPage); row.Size = UDim2.new(0, 340, 0, 40); row.BackgroundTransparency = 1
+    local toggle = Instance.new("TextButton", row); toggle.Size = UDim2.new(0, 140, 0, 35); updateSelfBtn(toggle, opt.enabled, name); Instance.new("UICorner", toggle)
+    local kBtn = Instance.new("TextButton", row); kBtn.Size = UDim2.new(0, 60, 0, 35); kBtn.Position = UDim2.fromOffset(150, 0); kBtn.Text = "["..opt.key.Name.."]"; Instance.new("UICorner", kBtn)
+    local val = Instance.new("TextBox", row); val.Size = UDim2.new(0, 60, 0, 35); val.Position = UDim2.fromOffset(220, 0); val.Text = tostring(opt.value); Instance.new("UICorner", val)
+    
+    toggle.MouseButton1Click:Connect(function() 
+        opt.enabled = not opt.enabled; updateSelfBtn(toggle, opt.enabled, name)
+        if name == "fly" then if opt.enabled then task.spawn(startFly) else tpwalking = false end end
+    end)
+    kBtn.MouseButton1Click:Connect(function() opt.setting = true; kBtn.Text = "[...]" end)
+    val.FocusLost:Connect(function() local n = tonumber(val.Text) if n then opt.value = n end end)
+    opt.toggleBtn = toggle; opt.keyBtn = kBtn; opt.powerBox = val
+end
+
+local antiFlingBtn = ModeBtn:Clone(); antiFlingBtn.Parent = SelfPage; antiFlingBtn.Text = "Anti-Fling: OFF"; antiFlingBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+antiFlingBtn.MouseButton1Click:Connect(function()
+    antiFlingEnabled = not antiFlingEnabled
+    antiFlingBtn.Text = "Anti-Fling: "..(antiFlingEnabled and "ON" or "OFF")
+    antiFlingBtn.BackgroundColor3 = antiFlingEnabled and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
 end)
 
-collisionToggle.MouseButton1Click:Connect(function()
-    collisionEnabled = not collisionEnabled
-    collisionToggle.Text = "Collision: "..(collisionEnabled and "ON" or "OFF")
-    collisionToggle.BackgroundColor3 =
-        collisionEnabled and Color3.fromRGB(60,160,60)
-        or Color3.fromRGB(200,50,50)
+-- [[ HITBOX SECTION ]]
+local function updateHitBtn(btn, state, txt)
+    btn.BackgroundColor3 = state and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(200, 50, 50)
+    btn.Text = txt .. ": " .. (state and "ON" or "OFF")
+end
 
-    for _,plr in pairs(Players:GetPlayers()) do
-        if plr ~= player and plr.Character then
-            local hrp = findBestHitboxPart(plr.Character)
-            if hrp then
-                hrp.CanCollide = collisionEnabled
+local hTog = Instance.new("TextButton", HitPage); hTog.Size = UDim2.new(0, 340, 0, 35); updateHitBtn(hTog, hitboxEnabled, "Hitbox"); Instance.new("UICorner", hTog)
+hTog.MouseButton1Click:Connect(function() hitboxEnabled = not hitboxEnabled; updateHitBtn(hTog, hitboxEnabled, "Hitbox"); reapplyHitboxes() end)
+
+local hSize = Instance.new("TextBox", HitPage); hSize.Size = UDim2.new(0, 340, 0, 35); hSize.BackgroundColor3 = Color3.fromRGB(45, 45, 50); hSize.Text = tostring(hitboxSize); hSize.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", hSize)
+hSize.FocusLost:Connect(function() local n = tonumber(hSize.Text) if n then hitboxSize = n; reapplyHitboxes() end end)
+
+local vTog = Instance.new("TextButton", HitPage); vTog.Size = UDim2.new(0, 340, 0, 35); updateHitBtn(vTog, hitboxVisual, "Visualizer"); Instance.new("UICorner", vTog)
+vTog.MouseButton1Click:Connect(function() hitboxVisual = not hitboxVisual; updateHitBtn(vTog, hitboxVisual, "Visualizer"); reapplyHitboxes() end)
+
+local bTog = Instance.new("TextButton", HitPage); bTog.Size = UDim2.new(0, 340, 0, 35); updateHitBtn(bTog, hitboxBillboard, "Box ESP"); Instance.new("UICorner", bTog)
+bTog.MouseButton1Click:Connect(function() hitboxBillboard = not hitboxBillboard; updateHitBtn(bTog, hitboxBillboard, "Box ESP"); reapplyHitboxes() end)
+
+local cTog = Instance.new("TextButton", HitPage); cTog.Size = UDim2.new(0, 340, 0, 35); updateHitBtn(cTog, collisionEnabled, "Collision"); Instance.new("UICorner", cTog)
+cTog.MouseButton1Click:Connect(function() collisionEnabled = not collisionEnabled; updateHitBtn(cTog, collisionEnabled, "Collision"); reapplyHitboxes() end)
+
+-- [[ CORE LOGIC LOOP ]]
+table.insert(_Connections, RunService.RenderStepped:Connect(function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChildOfClass("Humanoid") then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        hum.WalkSpeed = selfOptions.speed.enabled and selfOptions.speed.value or 16
+        hum.JumpPower = selfOptions.jump.enabled and selfOptions.jump.value or 50
+        
+        if antiFlingEnabled then
+            for _, v in pairs(char:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanTouch = false; v.CanQuery = false end
             end
         end
     end
-end)
+    if Active then
+        local function isValid(p) return p and p.Character and p.Character:FindFirstChild(TargetPartName) and (not Checks.Alive or (p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health > 0)) end
+        if not isValid(LockedPlayer) then
+            local target, dist = nil, math.huge
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and isValid(p) then
+                    local pos, onScreen = Camera:WorldToViewportPoint(p.Character[TargetPartName].Position)
+                    if onScreen and (not Checks.Team or p.Team ~= LocalPlayer.Team) then
+                        local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                        if mag < dist then dist = mag; target = p end
+                    end
+                end
+            end
+            LockedPlayer = target
+        end
+        if LockedPlayer and LockedPlayer.Character and LockedPlayer.Character:FindFirstChild(TargetPartName) then
+            local p = LockedPlayer.Character[TargetPartName]
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, p.Position + (p.Velocity * (Prediction / 100)))
+        end
+    else LockedPlayer = nil end
+end))
 
-Players.PlayerAdded:Connect(function(p)
-    p.CharacterAdded:Connect(function() task.wait(0.1) applyHitbox(p) end)
-end)
-for _,p in pairs(Players:GetPlayers()) do
-    p.CharacterAdded:Connect(function()
-        task.wait(0.1)
-        applyHitbox(p)
-    end)
-end
-
--- SELF SECTION
-local selfFrame = Instance.new("Frame",frame)
-selfFrame.Size=UDim2.fromOffset(380,250)
-selfFrame.Position=UDim2.fromOffset(10,90)
-selfFrame.BackgroundTransparency = 1
-local tag2=Instance.new("StringValue",selfFrame)
-tag2.Name="SectionTag"
-tag2.Value="Self"
-selfFrame.Visible = false
-
-local selfOptions={
-    speed={value=16,enabled=false,key=Enum.KeyCode.T},
-    jump={value=50,enabled=false,key=Enum.KeyCode.Y},
-    fly={value=1,enabled=false,key=Enum.KeyCode.U} -- DEFAULT FLY SPEED = 1
-}
-
-local yStart=10
-for name,opt in pairs(selfOptions) do
-    local toggle = Instance.new("TextButton",selfFrame)
-    toggle.Position = UDim2.fromOffset(10,yStart)
-    toggle.Size = UDim2.fromOffset(140,35)
-    toggle.Text = name:sub(1,1):upper()..name:sub(2)..": OFF"
-    toggle.BackgroundColor3 = Color3.fromRGB(200,50,50)
-    Instance.new("UICorner", toggle).CornerRadius = UDim.new(0,6)
-    opt.toggleBtn = toggle
-
-    local keyBtn = Instance.new("TextButton",selfFrame)
-    keyBtn.Position = UDim2.fromOffset(160,yStart)
-    keyBtn.Size = UDim2.fromOffset(60,35)
-    keyBtn.Text = opt.key.Name
-    keyBtn.BackgroundColor3 = Color3.fromRGB(70,70,70)
-    Instance.new("UICorner", keyBtn).CornerRadius = UDim.new(0,6)
-    opt.keyBtn = keyBtn
-
-    local powerBox = Instance.new("TextBox",selfFrame)
-    powerBox.Position = UDim2.fromOffset(230,yStart)
-    powerBox.Size = UDim2.fromOffset(60,35)
-    powerBox.Text = tostring(opt.value)
-    powerBox.ClearTextOnFocus=false
-    powerBox.BackgroundColor3 = Color3.fromRGB(50,50,55)
-    powerBox.TextColor3 = Color3.fromRGB(255,255,255)
-    Instance.new("UICorner", powerBox).CornerRadius=UDim.new(0,6)
-    opt.powerBox = powerBox
-
-    yStart=yStart+45
-end
-
-local function updateBtn(btn,state)
-    btn.BackgroundColor3 = state and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
-
-    if state then
-        btn.Text = btn.Text:gsub("OFF","ON")
-    else
-        btn.Text = btn.Text:gsub("ON","OFF")
-    end
-end
-
-
-for _,opt in pairs(selfOptions) do
-    opt.toggleBtn.MouseButton1Click:Connect(function()
-        opt.enabled = not opt.enabled
-        updateBtn(opt.toggleBtn,opt.enabled)
-    end)
-    opt.powerBox.FocusLost:Connect(function()
-        local val=tonumber(opt.powerBox.Text)
-        if val then opt.value=val end
-    end)
-end
-
-UserInputService.InputBegan:Connect(function(input,gp)
-    if gp then return end
-    for _,opt in pairs(selfOptions) do
-        if input.KeyCode==opt.key then
-            opt.enabled = not opt.enabled
-            updateBtn(opt.toggleBtn,opt.enabled)
+-- [[ INPUTS ]]
+table.insert(_Connections, UIS.InputBegan:Connect(function(input, gp)
+    if SettingKey then Keybind = input.KeyCode; BindBtn.Text = "["..input.KeyCode.Name.."]"; SettingKey = false; return end
+    for name, opt in pairs(selfOptions) do 
+        if opt.setting then opt.key = input.KeyCode; opt.keyBtn.Text = "["..input.KeyCode.Name.."]"; opt.setting = false; return end 
+        if not gp and input.KeyCode == opt.key then 
+            opt.enabled = not opt.enabled; updateSelfBtn(opt.toggleBtn, opt.enabled, name)
+            if name == "fly" then if opt.enabled then task.spawn(startFly) else tpwalking = false end end
         end
     end
-end)
-
--- SPEED & JUMP APPLY LOOP
-RunService.RenderStepped:Connect(function()
-    local char = player.Character
-    if not char then return end
-
-    local hum = char:FindFirstChildWhichIsA("Humanoid")
-    if not hum then return end
-
-    -- SPEED
-    if selfOptions.speed.enabled then
-        hum.WalkSpeed = tonumber(selfOptions.speed.powerBox.Text) or selfOptions.speed.value
-    else
-        hum.WalkSpeed = 16
+    if not gp then 
+        if input.KeyCode == Keybind then if Mode == "Hold" then Active = true else Active = not Active end end
+        if input.KeyCode == Enum.KeyCode.W then ctrl.f=1 elseif input.KeyCode == Enum.KeyCode.S then ctrl.b=1 end
+        if input.KeyCode == Enum.KeyCode.A then ctrl.l=1 elseif input.KeyCode == Enum.KeyCode.D then ctrl.r=1 end
     end
+end))
 
-    -- JUMP
-    if selfOptions.jump.enabled then
-        hum.JumpPower = tonumber(selfOptions.jump.powerBox.Text) or selfOptions.jump.value
-        hum.UseJumpPower = true
-    else
-        hum.JumpPower = 50
-        hum.UseJumpPower = true
-    end
-end)
+table.insert(_Connections, UIS.InputEnded:Connect(function(input)
+    if input.KeyCode == Keybind and Mode == "Hold" then Active = Active and false or false; LockedPlayer = nil end
+    if input.KeyCode == Enum.KeyCode.W then ctrl.f=0 elseif input.KeyCode == Enum.KeyCode.S then ctrl.b=0 end
+    if input.KeyCode == Enum.KeyCode.A then ctrl.l=0 elseif input.KeyCode == Enum.KeyCode.D then ctrl.r=0 end
+end))
 
--- === FLY SCRIPT INTEGRATED (FIXED CAMERA-RELATIVE) ===
-local flying = false
-local tpwalking = false
-local ctrl = {f=0,b=0,l=0,r=0}
-
-local function startFly()
-    local plr = Players.LocalPlayer
-    local char = plr.Character
-    if not char then return end
-    local hum = char:FindFirstChildWhichIsA("Humanoid")
-    local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
-    if not hum or not root then return end
-
-    plr.Character.Animate.Disabled = true
-    for _,v in next, hum:GetPlayingAnimationTracks() do v:AdjustSpeed(0) end
-
-    hum.PlatformStand = true
-    flying = true
-    tpwalking = true
-
-    local bg = Instance.new("BodyGyro", root)
-    bg.P = 9e4
-    bg.MaxTorque = Vector3.new(9e9,9e9,9e9)
-    bg.CFrame = root.CFrame
-
-    local bv = Instance.new("BodyVelocity", root)
-    bv.MaxForce = Vector3.new(9e9,9e9,9e9)
-    bv.Velocity = Vector3.new(0,0,0)
-
-    while tpwalking and char.Parent and hum.Parent do
-        RunService.RenderStepped:Wait()
-        local moveSpeed = (tonumber(selfOptions.fly.powerBox.Text) or 1)*30
-
-        -- Fixed camera-relative movement with Y movement
-        local moveVec = Vector3.new(ctrl.r-ctrl.l,0,ctrl.f-ctrl.b)
-        if moveVec.Magnitude>0 then moveVec = moveVec.Unit end
-
-        local camCF = workspace.CurrentCamera.CFrame
-        local camLook = camCF.LookVector.Unit
-        local camRight = camCF.RightVector.Unit
-
-        -- velocity includes camera tilt for forward/back
-        local velocity = (camLook*moveVec.Z + camRight*moveVec.X)*moveSpeed
-        bv.Velocity = velocity
-        bg.CFrame = camCF
-    end
-
-    tpwalking = false
-    flying = false
-    bv:Destroy()
-    bg:Destroy()
-    hum.PlatformStand = false
-    plr.Character.Animate.Disabled = false
-    for _,v in next, hum:GetPlayingAnimationTracks() do v:AdjustSpeed(1) end
+-- [[ TAB SWITCHING ]]
+local function switch(btn, page)
+    MainPage.Visible = false; SelfPage.Visible = false; HitPage.Visible = false
+    MainTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40); SelfTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40); HitTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    page.Visible = true; btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60); DropdownFrame.Visible = false
 end
+MainTab.MouseButton1Click:Connect(function() switch(MainTab, MainPage) end)
+SelfTab.MouseButton1Click:Connect(function() switch(SelfTab, SelfPage) end)
+HitTab.MouseButton1Click:Connect(function() switch(HitTab, HitPage) end)
 
-local function stopFly()
-    tpwalking=false
-end
+-- [[ DRAGGING ]]
+local dragging, dragStart, startPos
+Main.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 and not Sliding then dragging = true; dragStart = input.Position; startPos = Main.Position end end)
+UIS.InputChanged:Connect(function(input) if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then local delta = input.Position - dragStart; Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y); DropdownFrame.Visible = false end end)
+UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 
--- FLY TOGGLE
-selfOptions.fly.toggleBtn.MouseButton1Click:Connect(function()
-    selfOptions.fly.enabled = not selfOptions.fly.enabled
-    selfOptions.fly.toggleBtn.BackgroundColor3 = selfOptions.fly.enabled and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
-    selfOptions.fly.toggleBtn.Text = "Fly: "..(selfOptions.fly.enabled and "ON" or "OFF")
-
-    if selfOptions.fly.enabled and not flying then
-        spawn(startFly)
-    elseif not selfOptions.fly.enabled and flying then
-        stopFly()
-    end
+-- [[ CLEANUP FUNCTION ]]
+Close.MouseButton1Click:Connect(function()
+    hitboxEnabled = false; tpwalking = false; antiFlingEnabled = false
+    reapplyHitboxes()
+    for _, c in pairs(_Connections) do c:Disconnect() end
+    ScreenGui:Destroy()
+    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    if hum then hum.WalkSpeed = 16; hum.JumpPower = 50 end
 end)
 
--- ANTI FLING BUTTON
-local antiFlingBtn = Instance.new("TextButton", selfFrame)
-antiFlingBtn.Position = UDim2.fromOffset(10, yStart)
-antiFlingBtn.Size = UDim2.fromOffset(140, 35)
-antiFlingBtn.Text = "Anti-Fling: OFF"
-antiFlingBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-antiFlingBtn.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", antiFlingBtn).CornerRadius = UDim.new(0,6)
-
-yStart = yStart + 45
-
-antiFlingBtn.MouseButton1Click:Connect(function()
-    antiFlingEnabled = not antiFlingEnabled
-    
-    antiFlingBtn.Text = "Anti-Fling: "..(antiFlingEnabled and "ON" or "OFF")
-    antiFlingBtn.BackgroundColor3 =
-        antiFlingEnabled and Color3.fromRGB(60,160,60)
-        or Color3.fromRGB(200,50,50)
-
-    if antiFlingEnabled then
-        startAntiFling()
-    else
-        stopAntiFling()
-    end
-end)
-
--- ANTI-FLING
-local antiFlingEnabled = false
-local antiFlingConn
-local lastSafeCF
-
-local function startAntiFling()
-    lastSafeCF = nil
-
-    antiFlingConn = RunService.Heartbeat:Connect(function()
-        if not antiFlingEnabled then return end
-
-        local char = player.Character
-        if not char then return end
-        
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-
-        if not lastSafeCF then
-            lastSafeCF = hrp.CFrame
-            return
-        end
-
-        local dist = (hrp.Position - lastSafeCF.Position).Magnitude
-
-        if dist > 25 then
-                
-            hrp.AssemblyLinearVelocity = Vector3.zero
-            hrp.AssemblyAngularVelocity = Vector3.zero
-            hrp.CFrame = lastSafeCF
-        else
- 
-            lastSafeCF = lastSafeCF:Lerp(hrp.CFrame, 0.2)
-        end
-    end)
-end
-
-local function stopAntiFling()
-    if antiFlingConn then
-        antiFlingConn:Disconnect()
-        antiFlingConn = nil
-    end
-    lastSafeCF = nil
-end
-
-
--- FLY WASD CONTROLS
-UserInputService.InputBegan:Connect(function(input,gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.W then ctrl.f=1 end
-    if input.KeyCode == Enum.KeyCode.S then ctrl.b=1 end
-    if input.KeyCode == Enum.KeyCode.A then ctrl.l=-1 end
-    if input.KeyCode == Enum.KeyCode.D then ctrl.r=1 end
-end)
-UserInputService.InputEnded:Connect(function(input,gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.W then ctrl.f=0 end
-    if input.KeyCode == Enum.KeyCode.S then ctrl.b=0 end
-    if input.KeyCode == Enum.KeyCode.A then ctrl.l=0 end
-    if input.KeyCode == Enum.KeyCode.D then ctrl.r=0 end
-end)
-
--- ===== FLY GAME BLOCK (PERMA LOCK) =====
-local blockedPlaceIds = {
-    2788229376,
-}
-
-local function isBlockedPlace()
-    for _,id in ipairs(blockedPlaceIds) do
-        if game.PlaceId == id then
-            return true
-        end
-    end
-    return false
-end
-
-if isBlockedPlace() then
-    local btn = selfOptions.fly.toggleBtn
-    
-    selfOptions.fly.enabled = false
-    
-    btn.AutoButtonColor = false
-    btn.BackgroundColor3 = Color3.fromRGB(80,80,80)
-    btn.Text = "Fly: OFF\n(not supported yet)"
-    btn.Active = false
-    btn.Selectable = false
-
-    startFly = function() end
-    stopFly = function() end
-
-    UserInputService.InputBegan:Connect(function(input,gp)
-        if gp then return end
-        if input.KeyCode == selfOptions.fly.key then
-            selfOptions.fly.enabled = false
-        end
-    end)
-
-    RunService.RenderStepped:Connect(function()
-        btn.BackgroundColor3 = Color3.fromRGB(80,80,80)
-        btn.Text = "Fly: OFF\n(not supported yet)"
-        selfOptions.fly.enabled = false
-    end)
-end
-
-pcall(function()
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "VERSION 1.2.6",
-        Text = "This Script was made by jasonsgunz on Github.",
-        Icon = "rbxassetid://6031094670",
-        Duration = 6
-    })
-end)
+Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(function() task.wait(0.1); applyHitbox(p) end) end)
+for _,p in pairs(Players:GetPlayers()) do p.CharacterAdded:Connect(function() task.wait(0.1); applyHitbox(p) end) end
