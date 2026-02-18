@@ -112,7 +112,7 @@ local function reapplyHitboxes()
 end
 
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "Universal_V16_ESP_Clean"
+ScreenGui.Name = "Universal_V17_TracerFix"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
@@ -291,6 +291,8 @@ dotTog.MouseButton1Click:Connect(function() espOptions.dot = not espOptions.dot;
 
 table.insert(_Connections, RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
+    local myRoot = char and char:FindFirstChild("HumanoidRootPart")
+    
     if char and char:FindFirstChildOfClass("Humanoid") then
         local hum = char:FindFirstChildOfClass("Humanoid")
         hum.WalkSpeed = selfOptions.speed.enabled and selfOptions.speed.value or 16
@@ -317,19 +319,25 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
             if show and root and (espOptions.tracers or espOptions.names or espOptions.dot) then
                 local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
                 
-                if espOptions.tracers and onScreen then
-                    if not cache.line then 
-                        cache.line = Instance.new("Frame", TracerContainer); cache.line.BackgroundColor3 = Color3.new(1,1,1); cache.line.BorderSizePixel = 0
+                if espOptions.tracers and myRoot then
+                    local myPos, myOnScreen = Camera:WorldToViewportPoint(myRoot.Position)
+                    if onScreen and myOnScreen then
+                        if not cache.line then 
+                            cache.line = Instance.new("Frame", TracerContainer)
+                            cache.line.BackgroundColor3 = Color3.new(1,1,1)
+                            cache.line.BorderSizePixel = 0
+                            cache.line.AnchorPoint = Vector2.new(0.5, 0.5)
+                        end
+                        local p1 = Vector2.new(myPos.X, myPos.Y)
+                        local p2 = Vector2.new(pos.X, pos.Y)
+                        local dist = (p2 - p1).Magnitude
+                        cache.line.Size = UDim2.new(0, dist, 0, 1)
+                        cache.line.Position = UDim2.new(0, (p1.X + p2.X) / 2, 0, (p1.Y + p2.Y) / 2)
+                        cache.line.Rotation = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
+                        cache.line.Visible = true
+                    else
+                        if cache.line then cache.line.Visible = false end
                     end
-                    local mouse = UIS:GetMouseLocation()
-                    local p1, p2 = Vector2.new(mouse.X, mouse.Y), Vector2.new(pos.X, pos.Y)
-                    local dist = (p2 - p1).Magnitude
-                    local center = (p1 + p2) / 2
-                    local angle = math.atan2(p2.Y - p1.Y, p2.X - p1.X)
-                    cache.line.Size = UDim2.new(0, dist, 0, 1)
-                    cache.line.Position = UDim2.new(0, center.X, 0, center.Y)
-                    cache.line.Rotation = math.deg(angle)
-                    cache.line.Visible = true
                 else
                     if cache.line then cache.line.Visible = false end
                 end
@@ -462,7 +470,7 @@ for _,p in pairs(Players:GetPlayers()) do p.CharacterAdded:Connect(function() ta
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "VERSION V.3.0",
+        Title = "VERSION V.3.1",
         Text = "This Script was made by jasonsgunz on Github.",
         Icon = "rbxassetid://6031094670",
         Duration = 6
