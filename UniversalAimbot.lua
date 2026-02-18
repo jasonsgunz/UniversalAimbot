@@ -332,7 +332,7 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
         end
     end
     
-    -- TRACER FIX/CLEANUP LOOP
+    -- ALL ESP CLEANUP (Tracers, Names, and Dots)
     for p, cache in pairs(espCache) do
         if not p or not p.Parent or not p.Character then
             if cache.line then cache.line:Destroy() end
