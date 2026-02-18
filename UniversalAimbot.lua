@@ -27,7 +27,7 @@ local espOptions = {
 
 local antiFlingEnabled = false
 local lastSafeCF = CFrame.new()
-local teleportThreshold = 20
+local teleportThreshold = 20    
 local tpwalking = false
 local ctrl = {f=0,b=0,l=0,r=0}
 
@@ -332,6 +332,16 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
         end
     end
     
+    -- TRACER FIX/CLEANUP LOOP
+    for p, cache in pairs(espCache) do
+        if not p or not p.Parent or not p.Character then
+            if cache.line then cache.line:Destroy() end
+            if cache.name then cache.name:Destroy() end
+            if cache.dot then cache.dot:Destroy() end
+            espCache[p] = nil
+        end
+    end
+
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
             local root = p.Character:FindFirstChild("HumanoidRootPart")
