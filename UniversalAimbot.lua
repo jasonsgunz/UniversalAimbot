@@ -470,7 +470,7 @@ for _,p in pairs(Players:GetPlayers()) do p.CharacterAdded:Connect(function() ta
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "VERSION V.3.1",
+        Title = "VERSION V.3.1 (BETA)",
         Text = "This Script was made by jasonsgunz on Github.",
         Icon = "rbxassetid://6031094670",
         Duration = 6
