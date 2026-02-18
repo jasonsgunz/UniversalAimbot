@@ -112,9 +112,10 @@ local function reapplyHitboxes()
 end
 
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "Universal_V17_TracerFix"
+ScreenGui.Name = "Universal_V18_PreciseTracers"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+ScreenGui.IgnoreGuiInset = true -- FIXES THE ALIGNMENT BUG
 
 local Main = Instance.new("Frame", ScreenGui)
 Main.Size = UDim2.new(0, 380, 0, 300); Main.Position = UDim2.new(0.5, -190, 0.5, -150)
@@ -331,7 +332,7 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
                         local p1 = Vector2.new(myPos.X, myPos.Y)
                         local p2 = Vector2.new(pos.X, pos.Y)
                         local dist = (p2 - p1).Magnitude
-                        cache.line.Size = UDim2.new(0, dist, 0, 1)
+                        cache.line.Size = UDim2.new(0, dist, 0, 1.5) -- Slightly thicker for visibility
                         cache.line.Position = UDim2.new(0, (p1.X + p2.X) / 2, 0, (p1.Y + p2.Y) / 2)
                         cache.line.Rotation = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
                         cache.line.Visible = true
