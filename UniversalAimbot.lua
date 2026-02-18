@@ -40,6 +40,8 @@ local collisionEnabled = false
 local espCache = {} 
 local _Connections = {}
 
+-- [[ UTILITY FUNCTIONS ]] --
+
 local function isVisible(targetPart)
     local origin = Camera.CFrame.Position
     local direction = targetPart.Position - origin
@@ -50,6 +52,34 @@ local function isVisible(targetPart)
     local result = workspace:Raycast(origin, direction, rayParams)
     return result == nil
 end
+
+local function isValid(p) 
+    if not p or not p.Character or not p.Character:FindFirstChild(TargetPartName) then return false end
+    local targetPart = p.Character[TargetPartName]
+    local hum = p.Character:FindFirstChildOfClass("Humanoid")
+    
+    if Checks.Alive and (not hum or hum.Health <= 0) then return false end
+    if Checks.Team and p.Team == LocalPlayer.Team then return false end
+    if Checks.Wall and not isVisible(targetPart) then return false end
+    
+    return true
+end
+
+local function findBestTarget()
+    local target, dist = nil, math.huge
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and isValid(p) then
+            local pos, onScreen = Camera:WorldToViewportPoint(p.Character[TargetPartName].Position)
+            if onScreen then
+                local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                if mag < dist then dist = mag; target = p end
+            end
+        end
+    end
+    return target
+end
+
+-- [[ HITBOX LOGIC ]] --
 
 local function findBestHitboxPart(character)
     if not character then return nil end
@@ -113,8 +143,10 @@ local function reapplyHitboxes()
     for _,p in pairs(Players:GetPlayers()) do applyHitbox(p) end
 end
 
+-- [[ UI CONSTRUCTION ]] --
+
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "Universal_V19_AntiFlingFix"
+ScreenGui.Name = "Universal_V22_Strict"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 ScreenGui.IgnoreGuiInset = true 
@@ -161,6 +193,8 @@ Instance.new("UIListLayout", SelfPage).HorizontalAlignment = "Center"; SelfPage.
 Instance.new("UIListLayout", HitPage).HorizontalAlignment = "Center"; HitPage.UIListLayout.Padding = UDim.new(0, 15)
 Instance.new("UIListLayout", EspPage).HorizontalAlignment = "Center"; EspPage.UIListLayout.Padding = UDim.new(0, 8)
 
+-- [[ MAIN PAGE CONTROLS ]] --
+
 local Sliding = false
 local PredRow = Instance.new("Frame", MainPage); PredRow.Size = UDim2.new(0, 340, 0, 45); PredRow.BackgroundTransparency = 1
 local PredTxt = Instance.new("TextLabel", PredRow); PredTxt.Size = UDim2.new(1, 0, 0, 20); PredTxt.BackgroundTransparency = 1; PredTxt.Text = "Prediction: 0%"; PredTxt.TextColor3 = Color3.new(1,1,1); PredTxt.Font = "Gotham"; PredTxt.TextSize = 12
@@ -203,19 +237,16 @@ end)
 
 ChecksBtn.MouseButton1Click:Connect(function() 
     local hasTeams = #Teams:GetTeams() > 0
-    local dropdownHeight = hasTeams and 105 or 70
-    OpenDrop(ChecksBtn, dropdownHeight) 
-    
+    OpenDrop(ChecksBtn, hasTeams and 105 or 70) 
     local function addC(txt, key)
         local b = Instance.new("TextButton", DropdownFrame); b.Size = UDim2.new(1, 0, 0, 35); b.BackgroundColor3 = Color3.fromRGB(40, 40, 45); b.ZIndex = 101
         b.Text = txt..": "..(Checks[key] and "ON" or "OFF"); b.TextColor3 = Checks[key] and Color3.new(0,1,0) or Color3.new(1,0,0)
         b.MouseButton1Click:Connect(function() Checks[key] = not Checks[key]; b.Text = txt..": "..(Checks[key] and "ON" or "OFF"); b.TextColor3 = Checks[key] and Color3.new(0,1,0) or Color3.new(1,0,0) end)
     end
-    
-    addC("ALIVE", "Alive")
-    if hasTeams then addC("TEAM", "Team") end
-    addC("WALL", "Wall")
+    addC("ALIVE", "Alive"); if hasTeams then addC("TEAM", "Team") end; addC("WALL", "Wall")
 end)
+
+-- [[ SELF PAGE CONTROLS ]] --
 
 local function updateSelfBtn(btn, state, name)
     btn.BackgroundColor3 = state and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(200, 50, 50)
@@ -261,6 +292,8 @@ antiFlingBtn.MouseButton1Click:Connect(function()
     antiFlingBtn.BackgroundColor3 = antiFlingEnabled and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
 end)
 
+-- [[ HITBOX & ESP CONTROLS ]] --
+
 local function updateHitBtn(btn, state, txt)
     btn.BackgroundColor3 = state and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(200, 50, 50)
     btn.Text = txt .. ": " .. (state and "ON" or "OFF")
@@ -292,6 +325,8 @@ nameTog.MouseButton1Click:Connect(function() espOptions.names = not espOptions.n
 local dotTog = Instance.new("TextButton", EspPage); dotTog.Size = UDim2.new(0, 340, 0, 35); updateEspBtn(dotTog, espOptions.dot, "Dot ESP"); Instance.new("UICorner", dotTog)
 dotTog.MouseButton1Click:Connect(function() espOptions.dot = not espOptions.dot; updateEspBtn(dotTog, espOptions.dot, "Dot ESP") end)
 
+-- [[ MAIN RENDER STEPPED LOOP ]] --
+
 table.insert(_Connections, RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
     local myRoot = char and char:FindFirstChild("HumanoidRootPart")
@@ -306,32 +341,24 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
         if antiFlingEnabled and myRoot then
             local currentCF = myRoot.CFrame
             local distanceMoved = (currentCF.Position - lastSafeCF.Position).Magnitude
-            
             if distanceMoved > teleportThreshold and not tpwalking then
-                myRoot.CFrame = lastSafeCF
-                myRoot.AssemblyLinearVelocity = Vector3.zero
+                myRoot.CFrame = lastSafeCF; myRoot.AssemblyLinearVelocity = Vector3.zero
             else
                 lastSafeCF = currentCF
             end
-
             myRoot.AssemblyAngularVelocity = Vector3.zero 
-            
             local vel = myRoot.AssemblyLinearVelocity
             if vel.Magnitude > 100 then
                 myRoot.AssemblyLinearVelocity = Vector3.new(math.clamp(vel.X, -50, 50), vel.Y, math.clamp(vel.Z, -50, 50))
             end
-
-            for _, v in pairs(char:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    v.CanTouch = false
-                end
-            end
+            for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanTouch = false end end
             if hum then hum.Sit = false end
         elseif myRoot then
             lastSafeCF = myRoot.CFrame
         end
     end
     
+    -- ESP CACHE & DRAWING --
     for p, cache in pairs(espCache) do
         if not p or not p.Parent or not p.Character then
             if cache.line then cache.line:Destroy() end
@@ -345,38 +372,28 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
         if p ~= LocalPlayer and p.Character then
             local root = p.Character:FindFirstChild("HumanoidRootPart")
             local head = p.Character:FindFirstChild("Head")
-            
-            local show = true
-            if Checks.Team and p.Team == LocalPlayer.Team then show = false end
+            local show = not (Checks.Team and p.Team == LocalPlayer.Team)
             
             if not espCache[p] then espCache[p] = {} end
             local cache = espCache[p]
 
             if show and root and (espOptions.tracers or espOptions.names or espOptions.dot) then
                 local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
-                
                 if espOptions.tracers and myRoot then
                     local myPos, myOnScreen = Camera:WorldToViewportPoint(myRoot.Position)
                     if onScreen and myOnScreen then
                         if not cache.line then 
                             cache.line = Instance.new("Frame", TracerContainer)
                             cache.line.BackgroundColor3 = Color3.new(1,1,1)
-                            cache.line.BorderSizePixel = 0
-                            cache.line.AnchorPoint = Vector2.new(0.5, 0.5)
+                            cache.line.BorderSizePixel = 0; cache.line.AnchorPoint = Vector2.new(0.5, 0.5)
                         end
-                        local p1 = Vector2.new(myPos.X, myPos.Y)
-                        local p2 = Vector2.new(pos.X, pos.Y)
-                        local dist = (p2 - p1).Magnitude
-                        cache.line.Size = UDim2.new(0, dist, 0, 1.5)
+                        local p1, p2 = Vector2.new(myPos.X, myPos.Y), Vector2.new(pos.X, pos.Y)
+                        cache.line.Size = UDim2.new(0, (p2 - p1).Magnitude, 0, 1.5)
                         cache.line.Position = UDim2.new(0, (p1.X + p2.X) / 2, 0, (p1.Y + p2.Y) / 2)
                         cache.line.Rotation = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
                         cache.line.Visible = true
-                    else
-                        if cache.line then cache.line.Visible = false end
-                    end
-                else
-                    if cache.line then cache.line.Visible = false end
-                end
+                    else if cache.line then cache.line.Visible = false end end
+                else if cache.line then cache.line.Visible = false end end
 
                 if espOptions.names and head then
                     if not cache.name then
@@ -385,9 +402,7 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
                         t.Text = p.DisplayName; cache.name.Adornee = head
                     end
                     cache.name.Enabled = true
-                else
-                    if cache.name then cache.name.Enabled = false end
-                end
+                else if cache.name then cache.name.Enabled = false end end
 
                 if espOptions.dot and root then
                     if not cache.dot then
@@ -396,79 +411,40 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
                         cache.dot.Adornee = root
                     end
                     cache.dot.Enabled = true
-                else
-                    if cache.dot then cache.dot.Enabled = false end
-                end
+                else if cache.dot then cache.dot.Enabled = false end end
             else
                 if cache.line then cache.line.Visible = false end
                 if cache.name then cache.name.Enabled = false end
                 if cache.dot then cache.dot.Enabled = false end
             end
-        else
-            if espCache[p] then
-                if espCache[p].line then espCache[p].line.Visible = false end
-                if espCache[p].name then espCache[p].name.Enabled = false end
-                if espCache[p].dot then espCache[p].dot.Enabled = false end
-            end
+        elseif espCache[p] then
+            if espCache[p].line then espCache[p].line.Visible = false end
+            if espCache[p].name then espCache[p].name.Enabled = false end
+            if espCache[p].dot then espCache[p].dot.Enabled = false end
         end
     end
     
+    -- AIMBOT LOGIC --
     if Active then
-        local function isValid(p) 
-            if not p or not p.Character or not p.Character:FindFirstChild(TargetPartName) then return false end
-            local targetPart = p.Character[TargetPartName]
-            local hum = p.Character:FindFirstChildOfClass("Humanoid")
-            if Checks.Alive and (not hum or hum.Health <= 0) then return false end
-            if Checks.Team and p.Team == LocalPlayer.Team then return false end
-            if Checks.Wall and not isVisible(targetPart) then return false end
-            return true
-        end
-        
-        if not LockedPlayer then
-            local target, dist = nil, math.huge
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and isValid(p) then
-                    local pos, onScreen = Camera:WorldToViewportPoint(p.Character[TargetPartName].Position)
-                    if onScreen then
-                        local mag = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
-                        if mag < dist then dist = mag; target = p end
-                    end
-                end
-            end
-            LockedPlayer = target
+        -- STRICTOR CHECK: If target is gone/invalid, untoggle Active immediately
+        if not LockedPlayer or not isValid(LockedPlayer) then
+            Active = false
+            LockedPlayer = nil
         else
-            if not isValid(LockedPlayer) then
-                if Mode == "Toggle" then
-                    if Checks.Alive then Active = false; LockedPlayer = nil end
-                else
-                    LockedPlayer = nil
-                end
-            end
+            local pPart = LockedPlayer.Character[TargetPartName]
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, pPart.Position + (pPart.Velocity * (Prediction / 100)))
         end
-        
-        if LockedPlayer and LockedPlayer.Character and LockedPlayer.Character:FindFirstChild(TargetPartName) then
-            local p = LockedPlayer.Character[TargetPartName]
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, p.Position + (p.Velocity * (Prediction / 100)))
-        end
-    else 
-        LockedPlayer = nil 
+    else
+        LockedPlayer = nil
     end
 end))
 
+-- [[ INPUT & UI MANAGEMENT ]] --
+
 table.insert(_Connections, UIS.InputBegan:Connect(function(input, gp)
-    if SettingKey then 
-        Keybind = input.KeyCode
-        BindBtn.Text = "["..input.KeyCode.Name:upper().."]"
-        SettingKey = false
-        return 
-    end
+    if SettingKey then Keybind = input.KeyCode; BindBtn.Text = "["..input.KeyCode.Name:upper().."]"; SettingKey = false; return end
     for name, opt in pairs(selfOptions) do 
-        if opt.setting then 
-            opt.key = input.KeyCode
-            opt.keyBtn.Text = "["..input.KeyCode.Name:upper().."]"
-            opt.setting = false
-            return 
-        end 
+        if opt.setting then opt.key = input.KeyCode; opt.keyBtn.Text = "["..input.KeyCode.Name:upper().."]"; opt.setting = false; return end 
         if not gp and input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == opt.key then 
             opt.enabled = not opt.enabled; updateSelfBtn(opt.toggleBtn, opt.enabled, name)
             if name == "fly" then if opt.enabled then task.spawn(startFly) else tpwalking = false end end
@@ -476,7 +452,16 @@ table.insert(_Connections, UIS.InputBegan:Connect(function(input, gp)
     end
     if not gp then 
         if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == Keybind then 
-            if Mode == "Hold" then Active = true else Active = not Active end 
+            if Mode == "Hold" then 
+                LockedPlayer = findBestTarget()
+                Active = (LockedPlayer ~= nil)
+            else 
+                Active = not Active
+                if Active then
+                    LockedPlayer = findBestTarget()
+                    if not LockedPlayer then Active = false end
+                end
+            end 
         end
         if input.KeyCode == Enum.KeyCode.W then ctrl.f=1 elseif input.KeyCode == Enum.KeyCode.S then ctrl.b=1 end
         if input.KeyCode == Enum.KeyCode.A then ctrl.l=1 elseif input.KeyCode == Enum.KeyCode.D then ctrl.r=1 end
@@ -484,15 +469,15 @@ table.insert(_Connections, UIS.InputBegan:Connect(function(input, gp)
 end))
 
 table.insert(_Connections, UIS.InputEnded:Connect(function(input)
-    if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == Keybind and Mode == "Hold" then Active = Active and false or false; LockedPlayer = nil end
+    if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == Keybind and Mode == "Hold" then Active = false; LockedPlayer = nil end
     if input.KeyCode == Enum.KeyCode.W then ctrl.f=0 elseif input.KeyCode == Enum.KeyCode.S then ctrl.b=0 end
     if input.KeyCode == Enum.KeyCode.A then ctrl.l=0 elseif input.KeyCode == Enum.KeyCode.D then ctrl.r=0 end
 end))
 
 local function switch(btn, page)
-    MainPage.Visible = false; SelfPage.Visible = false; HitPage.Visible = false; EspPage.Visible = false
-    MainTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40); SelfTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40); HitTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40); EspTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-    page.Visible = true; btn.BackgroundColor3 = Color3.fromRGB(50, 50, 60); DropdownFrame.Visible = false
+    MainPage.Visible, SelfPage.Visible, HitPage.Visible, EspPage.Visible = false, false, false, false
+    MainTab.BackgroundColor3, SelfTab.BackgroundColor3, HitTab.BackgroundColor3, EspTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40), Color3.fromRGB(35, 35, 40), Color3.fromRGB(35, 35, 40), Color3.fromRGB(35, 35, 40)
+    page.Visible, btn.BackgroundColor3, DropdownFrame.Visible = true, Color3.fromRGB(50, 50, 60), false
 end
 MainTab.MouseButton1Click:Connect(function() switch(MainTab, MainPage) end)
 SelfTab.MouseButton1Click:Connect(function() switch(SelfTab, SelfPage) end)
@@ -505,10 +490,8 @@ UIS.InputChanged:Connect(function(input) if dragging and input.UserInputType == 
 UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 
 Close.MouseButton1Click:Connect(function()
-    hitboxEnabled = false; tpwalking = false; antiFlingEnabled = false
-    reapplyHitboxes() 
-    for _, c in pairs(_Connections) do c:Disconnect() end
-    ScreenGui:Destroy()
+    hitboxEnabled, tpwalking, antiFlingEnabled = false, false, false; reapplyHitboxes() 
+    for _, c in pairs(_Connections) do c:Disconnect() end; ScreenGui:Destroy()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
     if hum then hum.WalkSpeed = 16; hum.JumpPower = 50 end
 end)
