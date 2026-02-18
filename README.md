@@ -1,7 +1,3 @@
-# UPDATE LOG V3.0!
+# UPDATE LOG V3.1! (beta)
 
---Renamed from HitboxTroller to UniversalAimbot
-
---Changed UI the main tab is different now but the hitbox section is still there
-
---Its better overall now
+-- Added a ESP Section currently in Beta because i need to test it first.
