@@ -10,7 +10,7 @@ local Keybind = Enum.KeyCode.Unknown
 local TargetPartName = "HumanoidRootPart"
 local Mode = "Hold"
 local Prediction = 0 
-local Smoothing = 1 -- Internal Lerp Alpha
+local Smoothing = 1
 local SettingKey = false
 local LockedPlayer = nil 
 local Checks = { Alive = false, Team = false, Wall = false }
@@ -37,8 +37,6 @@ local collisionEnabled = false
 
 local espCache = {} 
 local _Connections = {}
-
--- [[ CORE UTILITIES ]] --
 
 local function isVisible(targetPart)
     if not targetPart or not targetPart.Parent then return false end
@@ -144,8 +142,6 @@ local function reapplyHitboxes()
     for _,p in pairs(Players:GetPlayers()) do applyHitbox(p) end
 end
 
--- [[ UI INITIALIZATION ]] --
-
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
 ScreenGui.Name = "Universal_V23_FinalFix"
 ScreenGui.ResetOnSpawn = false
@@ -167,7 +163,7 @@ Instance.new("UIListLayout", DropdownFrame).HorizontalAlignment = "Center"
 
 local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, -60, 0, 35); Title.Position = UDim2.new(0, 15, 0, 0); Title.BackgroundTransparency = 1
-Title.Text = "UniversalAimbot V23"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = "GothamBold"; Title.TextSize = 14; Title.TextXAlignment = "Left"
+Title.Text = "UniversalAimbot"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = "GothamBold"; Title.TextSize = 14; Title.TextXAlignment = "Left"
 
 local Close = Instance.new("TextButton", Main)
 Close.Size = UDim2.new(0, 25, 0, 25); Close.Position = UDim2.new(1, -30, 0, 5); Close.BackgroundColor3 = Color3.fromRGB(200, 50, 50); Close.Text = "X"; Close.TextColor3 = Color3.new(1, 1, 1)
@@ -184,7 +180,7 @@ local HitTab = MainTab:Clone(); HitTab.Parent = TabHolder; HitTab.Position = UDi
 local EspTab = MainTab:Clone(); EspTab.Parent = TabHolder; EspTab.Position = UDim2.new(0, 255, 0, 0); EspTab.Text = "ESP"; EspTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
 
 local MainPage = Instance.new("ScrollingFrame", Main)
-MainPage.Size = UDim2.new(1, 0, 1, -75); MainPage.Position = UDim2.new(0, 0, 0, 75); MainPage.BackgroundTransparency = 1; MainPage.BorderSizePixel = 0; MainPage.CanvasSize = UDim2.new(0, 0, 0, 350); MainPage.ScrollBarThickness = 0
+MainPage.Size = UDim2.new(1, 0, 1, -75); MainPage.Position = UDim2.new(0, 0, 0, 75); MainPage.BackgroundTransparency = 1; MainPage.BorderSizePixel = 0; MainPage.CanvasSize = UDim2.new(0, 0, 0, 380); MainPage.ScrollBarThickness = 0
 local SelfPage = MainPage:Clone(); SelfPage.Parent = Main; SelfPage.Visible = false
 local HitPage = MainPage:Clone(); HitPage.Parent = Main; HitPage.Visible = false
 local EspPage = MainPage:Clone(); EspPage.Parent = Main; EspPage.Visible = false
@@ -194,7 +190,7 @@ Instance.new("UIListLayout", SelfPage).HorizontalAlignment = "Center"; SelfPage.
 Instance.new("UIListLayout", HitPage).HorizontalAlignment = "Center"; HitPage.UIListLayout.Padding = UDim.new(0, 15)
 Instance.new("UIListLayout", EspPage).HorizontalAlignment = "Center"; EspPage.UIListLayout.Padding = UDim.new(0, 8)
 
--- [[ SLIDERS & DROPDOWNS ]] --
+-- [[ SLIDER & DROPDOWN HELPERS ]] --
 
 local Sliding = false
 local PredRow = Instance.new("Frame", MainPage); PredRow.Size = UDim2.new(0, 340, 0, 45); PredRow.BackgroundTransparency = 1
@@ -221,12 +217,12 @@ ModeBtn.MouseButton1Click:Connect(function() Mode = (Mode == "Hold" and "Toggle"
 local PartBtn = ModeBtn:Clone(); PartBtn.Parent = MainPage; PartBtn.Text = "TARGET: HumanoidRootPart"
 local ChecksBtn = ModeBtn:Clone(); ChecksBtn.Parent = MainPage; ChecksBtn.Text = "CHECKS"
 
--- [[ LOCK MAGNETISM SLIDER (GLUE LOGIC) ]] --
+-- [[ LOCK MAGNETISM SLIDER ]] --
 
 local SlidingM = false
-local MagnetRow = Instance.new("Frame", MainPage); MagnetRow.Size = UDim2.new(0, 340, 0, 45); MagnetRow.BackgroundTransparency = 1
-local MagnetTxt = Instance.new("TextLabel", MagnetRow); MagnetTxt.Size = UDim2.new(1, 0, 0, 20); MagnetTxt.BackgroundTransparency = 1; MagnetTxt.Text = "Lock Magnetism: 1"; MagnetTxt.TextColor3 = Color3.new(1,1,1); MagnetTxt.Font = "Gotham"; MagnetTxt.TextSize = 12
-local SliderBackM = Instance.new("Frame", MagnetRow); SliderBackM.Size = UDim2.new(1, -20, 0, 10); SliderBackM.Position = UDim2.new(0, 10, 0, 25); SliderBackM.BackgroundColor3 = Color3.fromRGB(40, 40, 45); Instance.new("UICorner", SliderBackM)
+local MagRow = Instance.new("Frame", MainPage); MagRow.Size = UDim2.new(0, 340, 0, 45); MagRow.BackgroundTransparency = 1
+local MagTxt = Instance.new("TextLabel", MagRow); MagTxt.Size = UDim2.new(1, 0, 0, 20); MagTxt.BackgroundTransparency = 1; MagTxt.Text = "Lock Magnetism: 1"; MagTxt.TextColor3 = Color3.new(1,1,1); MagTxt.Font = "Gotham"; MagTxt.TextSize = 12
+local SliderBackM = Instance.new("Frame", MagRow); SliderBackM.Size = UDim2.new(1, -20, 0, 10); SliderBackM.Position = UDim2.new(0, 10, 0, 25); SliderBackM.BackgroundColor3 = Color3.fromRGB(40, 40, 45); Instance.new("UICorner", SliderBackM)
 local SliderFillM = Instance.new("Frame", SliderBackM); SliderFillM.Size = UDim2.new(0, 0, 1, 0); SliderFillM.BackgroundColor3 = Color3.fromRGB(60, 160, 60); Instance.new("UICorner", SliderFillM)
 
 SliderBackM.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then SlidingM = true end end)
@@ -234,9 +230,9 @@ UIS.InputChanged:Connect(function(input)
     if SlidingM and input.UserInputType == Enum.UserInputType.MouseMovement then 
         local pos = math.clamp((input.Position.X - SliderBackM.AbsolutePosition.X) / SliderBackM.AbsoluteSize.X, 0, 1)
         SliderFillM.Size = UDim2.new(pos, 0, 1, 0)
-        local val = math.floor(pos * 9) + 1
-        MagnetTxt.Text = "Lock Magnetism: " .. val
-        Smoothing = (11 - val) / 10 -- Maps 1 (Fast) to 10 (Slow)
+        local displayVal = math.floor(pos * 9) + 1
+        MagTxt.Text = "Lock Magnetism: " .. displayVal
+        Smoothing = (11 - displayVal) / 10 
     end 
 end)
 
@@ -266,8 +262,6 @@ ChecksBtn.MouseButton1Click:Connect(function()
     end
     addC("ALIVE", "Alive"); if hasTeams then addC("TEAM", "Team") end; addC("WALL", "Wall")
 end)
-
--- [[ MAIN RENDER LOOP ]] --
 
 table.insert(_Connections, RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
@@ -328,31 +322,24 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
         end
     end
     
-    -- [[ AIM CORE WITH MAGNETIC GLUE ]] --
     if Active then
         if isValid(LockedPlayer, false) then 
             local pPart = LockedPlayer.Character[TargetPartName]
             local predPos = pPart.Position + (pPart.Velocity * (Prediction / 100))
             local targetCF = CFrame.new(Camera.CFrame.Position, predPos)
             
-            -- THE GLUE LOGIC:
-            -- Calculate distance from crosshair center to target
+            local currentSmoothing = Smoothing
             local angleDiff = (Camera.CFrame.LookVector - targetCF.LookVector).Magnitude
-            local lerpAlpha = Smoothing
-            
-            -- If crosshair is close enough, override smoothing to 1 (Instant Glue)
             if angleDiff < 0.15 then 
-                lerpAlpha = 1 
+                currentSmoothing = 1
             end
             
-            Camera.CFrame = Camera.CFrame:Lerp(targetCF, lerpAlpha)
+            Camera.CFrame = Camera.CFrame:Lerp(targetCF, currentSmoothing)
         else
             Active = false; LockedPlayer = nil
         end
     else LockedPlayer = nil end
 end))
-
--- [[ INPUT & CLEANUP ]] --
 
 table.insert(_Connections, UIS.InputBegan:Connect(function(input, gp)
     if SettingKey then Keybind = input.KeyCode; BindBtn.Text = "["..input.KeyCode.Name:upper().."]"; SettingKey = false; return end
