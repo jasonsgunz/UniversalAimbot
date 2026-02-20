@@ -10,7 +10,7 @@ local Keybind = Enum.KeyCode.Unknown
 local TargetPartName = "HumanoidRootPart"
 local Mode = "Hold"
 local Prediction = 0 
-local Smoothing = 0.1 
+local Smoothing = 1.0
 local SettingKey = false
 local LockedPlayer = nil 
 local Checks = { Alive = false, Team = false, Wall = false }
@@ -212,14 +212,17 @@ local SlidingM = false
 local MagRow = Instance.new("Frame", MainPage); MagRow.Size = UDim2.new(0, 340, 0, 45); MagRow.BackgroundTransparency = 1
 local MagTxt = Instance.new("TextLabel", MagRow); MagTxt.Size = UDim2.new(1, 0, 0, 20); MagTxt.BackgroundTransparency = 1; MagTxt.Text = "Lock-On Smoothning: 1"; MagTxt.TextColor3 = Color3.new(1,1,1); MagTxt.Font = "Gotham"; MagTxt.TextSize = 12
 local SliderBackM = Instance.new("Frame", MagRow); SliderBackM.Size = UDim2.new(1, -20, 0, 10); SliderBackM.Position = UDim2.new(0, 10, 0, 25); SliderBackM.BackgroundColor3 = Color3.fromRGB(40, 40, 45); Instance.new("UICorner", SliderBackM)
-local SliderFillM = Instance.new("Frame", SliderBackM); SliderFillM.Size = UDim2.new(0.5, 0, 1, 0); SliderFillM.BackgroundColor3 = Color3.fromRGB(60, 160, 60); Instance.new("UICorner", SliderFillM)
+local SliderFillM = Instance.new("Frame", SliderBackM); SliderFillM.Size = UDim2.new(0, 0, 1, 0); SliderFillM.BackgroundColor3 = Color3.fromRGB(60, 160, 60); Instance.new("UICorner", SliderFillM)
 
 SliderBackM.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then SlidingM = true end end)
 UIS.InputChanged:Connect(function(input) 
     if SlidingM and input.UserInputType == Enum.UserInputType.MouseMovement then 
-        local pos = math.clamp((input.Position.X - SliderBackM.AbsolutePosition.X) / SliderBackM.AbsoluteSize.X, 0, 1)
-        SliderFillM.Size = UDim2.new(pos, 0, 1, 0); local val = math.floor(pos * 9) + 1
-        MagTxt.Text = "Lock-On Smoothning: " .. val; Smoothing = (11 - val) / 10 
+local pos = math.clamp((input.Position.X - SliderBackM.AbsolutePosition.X) / SliderBackM.AbsoluteSize.X, 0, 1)
+SliderFillM.Size = UDim2.new(pos, 0, 1, 0)
+
+local val = math.floor(pos * 9) + 1
+MagTxt.Text = "Lock-On Smoothning: " .. val 
+Smoothing = (11 - val) / 10 
     end 
 end)
 
