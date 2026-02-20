@@ -45,12 +45,12 @@ local function isVisible(targetPart)
     local origin = Camera.CFrame.Position
     local direction = targetPart.Position - origin
     local rayParams = RaycastParams.new()
-    -- We exclude YOUR character and the TARGET character so the ray only hits walls
+
     rayParams.FilterDescendantsInstances = {LocalPlayer.Character, char}
     rayParams.FilterType = Enum.RaycastFilterType.Exclude
 
     local result = workspace:Raycast(origin, direction, rayParams)
-    return result == nil -- If nil, nothing (walls) blocked the path
+    return result == nil
 end
 
 local function isValid(p) 
@@ -99,7 +99,7 @@ local function applyHitbox(plr)
     if not hrp then return end
 
     if hitboxData[plr] then
-        if hitboxData[plr].conn then hitboxData[plr].conn:Disconnect() end
+
         if hitboxData[plr].viz then hitboxData[plr].viz:Destroy() end
     end
 
@@ -111,21 +111,11 @@ local function applyHitbox(plr)
         viz.Color = Color3.fromRGB(255,0,0); viz.Material = Enum.Material.Neon; viz.Parent = workspace
     end
 
-    local conn = RunService.RenderStepped:Connect(function()
-        if not hrp or not hrp.Parent then
-            if viz then viz:Destroy() end
-            return
-        end
-        hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-        hrp.CanCollide = collisionEnabled
-        if viz then viz.CFrame = hrp.CFrame; viz.Size = hrp.Size end
-    end)
-    hitboxData[plr] = {conn=conn,viz=viz}
+    hitboxData[plr] = {viz=viz, hrp=hrp}
 end
 
 local function reapplyHitboxes()
     for _,v in pairs(hitboxData) do
-        if v.conn then v.conn:Disconnect() end
         if v.viz then v.viz:Destroy() end
     end
     hitboxData = {}
@@ -276,9 +266,12 @@ local function updateSelfBtn(btn, state, name)
     btn.Text = name:sub(1,1):upper()..name:sub(2)..": "..(state and "ON" or "OFF")
 end
 
+local isFlying = false
 function startFly()
+    if isFlying then return end
+    isFlying = true
     local char = LocalPlayer.Character
-    if not char then return end
+    if not char then isFlying = false return end
     local hum = char:FindFirstChildOfClass("Humanoid")
     local root = char:FindFirstChild("HumanoidRootPart")
     hum.PlatformStand = true; tpwalking = true
@@ -291,6 +284,7 @@ function startFly()
         bg.CFrame = Camera.CFrame
     end
     bv:Destroy(); bg:Destroy(); if hum then hum.PlatformStand = false end
+    isFlying = false
 end
 
 for name, opt in pairs(selfOptions) do
@@ -358,7 +352,7 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
             hum.WalkSpeed = selfOptions.speed.enabled and selfOptions.speed.value or 16
             hum.JumpPower = selfOptions.jump.enabled and selfOptions.jump.value or 50
         end
-        -- Anti-Fling code
+
         if antiFlingEnabled and myRoot then
             local currentCF = myRoot.CFrame
             if (currentCF.Position - lastSafeCF.Position).Magnitude > teleportThreshold and not tpwalking then
@@ -366,13 +360,26 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
             else lastSafeCF = currentCF end
             myRoot.AssemblyAngularVelocity = Vector3.zero 
             local vel = myRoot.AssemblyLinearVelocity
-            if vel.Magnitude > 100 then myRoot.AssemblyLinearVelocity = Vector3.new(math.clamp(vel.X, -50, 50), vel.Y, math.clamp(vel.Z, -50, 50)) end
+
+            if vel.Magnitude > 100 then myRoot.AssemblyLinearVelocity = Vector3.new(math.clamp(vel.X, -50, 50), math.clamp(vel.Y, -50, 50), math.clamp(vel.Z, -50, 50)) end
             for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanTouch = false end end
             if hum then hum.Sit = false end
         elseif myRoot then lastSafeCF = myRoot.CFrame end
     end
 
-    -- ESP Rendering logic
+    for plr, data in pairs(hitboxData) do
+        local hrp = data.hrp
+        local viz = data.viz
+        if not hrp or not hrp.Parent then
+            if viz then viz:Destroy() end
+            hitboxData[plr] = nil
+        else
+            hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+            hrp.CanCollide = collisionEnabled
+            if viz then viz.CFrame = hrp.CFrame; viz.Size = hrp.Size end
+        end
+    end
+
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
             local root = p.Character:FindFirstChild("HumanoidRootPart")
@@ -393,12 +400,16 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
                 else if cache.line then cache.line.Visible = false end end
 
                 if espOptions.names and head then
-                    if not cache.name then cache.name = Instance.new("BillboardGui", TracerContainer); cache.name.Size = UDim2.new(0,200,0,50); cache.name.AlwaysOnTop = true; local t = Instance.new("TextLabel", cache.name); t.Size = UDim2.new(1,0,1,0); t.BackgroundTransparency = 1; t.TextColor3 = Color3.new(1,1,1); t.TextStrokeTransparency = 0; t.Text = p.DisplayName; cache.name.Adornee = head end
+                    if not cache.name then cache.name = Instance.new("BillboardGui", TracerContainer); cache.name.Size = UDim2.new(0,200,0,50); cache.name.AlwaysOnTop = true; local t = Instance.new("TextLabel", cache.name); t.Size = UDim2.new(1,0,1,0); t.BackgroundTransparency = 1; t.TextColor3 = Color3.new(1,1,1); t.TextStrokeTransparency = 0; t.Text = p.DisplayName; end
+
+                    cache.name.Adornee = head
                     cache.name.Enabled = true
                 else if cache.name then cache.name.Enabled = false end end
 
                 if espOptions.dot and root then
-                    if not cache.dot then cache.dot = Instance.new("BillboardGui", TracerContainer); cache.dot.Size = UDim2.new(0,10,0,10); cache.dot.AlwaysOnTop = true; local f = Instance.new("Frame", cache.dot); f.Size = UDim2.new(1,0,1,0); f.BackgroundColor3 = Color3.fromRGB(255,50,50); Instance.new("UICorner", f, UDim.new(1,0)); cache.dot.Adornee = root end
+                    if not cache.dot then cache.dot = Instance.new("BillboardGui", TracerContainer); cache.dot.Size = UDim2.new(0,10,0,10); cache.dot.AlwaysOnTop = true; local f = Instance.new("Frame", cache.dot); f.Size = UDim2.new(1,0,1,0); f.BackgroundColor3 = Color3.fromRGB(255,50,50); Instance.new("UICorner", f, UDim.new(1,0)); end
+
+                    cache.dot.Adornee = root
                     cache.dot.Enabled = true
                 else if cache.dot then cache.dot.Enabled = false end end
             else
@@ -411,13 +422,13 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
 
     -- [[ FIXED AIM CORE ]] --
     if Active then
-        -- This block is strictly for MAINTAINING a lock. It will not find a new person.
+
         if isValid(LockedPlayer) then
             local pPart = LockedPlayer.Character[TargetPartName]
             local targetCF = CFrame.new(Camera.CFrame.Position, pPart.Position + (pPart.Velocity * (Prediction / 100)))
             Camera.CFrame = Camera.CFrame:Lerp(targetCF, Smoothing)
         else
-            -- TARGET LOST: KILL ACTIVE STATUS IMMEDIATELY
+
             Active = false
             LockedPlayer = nil
         end
@@ -443,12 +454,12 @@ table.insert(_Connections, UIS.InputBegan:Connect(function(input, gp)
         if input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == Keybind then 
             if Mode == "Hold" then 
                 LockedPlayer = findBestTarget()
-                Active = (LockedPlayer ~= nil) -- Only Active if someone was found
+                Active = (LockedPlayer ~= nil)
             else 
                 Active = not Active
                 if Active then
                     LockedPlayer = findBestTarget()
-                    if not LockedPlayer then Active = false end -- Untoggle if nobody found
+                    if not LockedPlayer then Active = false end
                 end
             end 
         end
@@ -499,7 +510,7 @@ Players.PlayerRemoving:Connect(function(p)
         espCache[p] = nil
     end
     if hitboxData[p] then
-        if hitboxData[p].conn then hitboxData[p].conn:Disconnect() end
+
         if hitboxData[p].viz then hitboxData[p].viz:Destroy() end
         hitboxData[p] = nil
     end
@@ -507,7 +518,7 @@ end)
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "VERSION V.3.2",
+        Title = "VERSION V.3.3",
         Text = "This Script was made by jasonsgunz on Github.",
         Icon = "rbxassetid://6031094670",
         Duration = 6
