@@ -10,6 +10,7 @@ local Keybind = Enum.KeyCode.Unknown
 local TargetPartName = "HumanoidRootPart"
 local Mode = "Hold"
 local Prediction = 0 
+local Smoothing = 0.5 
 local SettingKey = false
 local LockedPlayer = nil 
 local Checks = { Alive = false, Team = false, Wall = false }
@@ -165,7 +166,6 @@ Instance.new("UIListLayout", DropdownFrame).HorizontalAlignment = "Center"
 local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, -60, 0, 35); Title.Position = UDim2.new(0, 15, 0, 0); Title.BackgroundTransparency = 1
 Title.Text = "UniversalAimbot"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = "GothamBold"; Title.TextSize = 14; Title.TextXAlignment = "Left"
-Title.Text = "UniversalAimbot"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = "GothamBold"; Title.TextSize = 14; Title.TextXAlignment = "Left"
 
 local Close = Instance.new("TextButton", Main)
 Close.Size = UDim2.new(0, 25, 0, 25); Close.Position = UDim2.new(1, -30, 0, 5); Close.BackgroundColor3 = Color3.fromRGB(200, 50, 50); Close.Text = "X"; Close.TextColor3 = Color3.new(1, 1, 1)
@@ -182,7 +182,7 @@ local HitTab = MainTab:Clone(); HitTab.Parent = TabHolder; HitTab.Position = UDi
 local EspTab = MainTab:Clone(); EspTab.Parent = TabHolder; EspTab.Position = UDim2.new(0, 255, 0, 0); EspTab.Text = "ESP"; EspTab.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
 
 local MainPage = Instance.new("ScrollingFrame", Main)
-MainPage.Size = UDim2.new(1, 0, 1, -75); MainPage.Position = UDim2.new(0, 0, 0, 75); MainPage.BackgroundTransparency = 1; MainPage.BorderSizePixel = 0; MainPage.CanvasSize = UDim2.new(0, 0, 0, 320); MainPage.ScrollBarThickness = 0
+MainPage.Size = UDim2.new(1, 0, 1, -75); MainPage.Position = UDim2.new(0, 0, 0, 75); MainPage.BackgroundTransparency = 1; MainPage.BorderSizePixel = 0; MainPage.CanvasSize = UDim2.new(0, 0, 0, 360); MainPage.ScrollBarThickness = 0
 local SelfPage = MainPage:Clone(); SelfPage.Parent = Main; SelfPage.Visible = false
 local HitPage = MainPage:Clone(); HitPage.Parent = Main; HitPage.Visible = false
 local EspPage = MainPage:Clone(); EspPage.Parent = Main; EspPage.Visible = false
@@ -207,7 +207,28 @@ UIS.InputChanged:Connect(function(input)
         SliderFill.Size = UDim2.new(pos, 0, 1, 0); Prediction = math.floor(pos * 100); PredTxt.Text = "Prediction: " .. Prediction .. "%"
     end 
 end)
-UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then Sliding = false end end)
+
+local SlidingM = false
+local MagRow = Instance.new("Frame", MainPage); MagRow.Size = UDim2.new(0, 340, 0, 45); MagRow.BackgroundTransparency = 1
+local MagTxt = Instance.new("TextLabel", MagRow); MagTxt.Size = UDim2.new(1, 0, 0, 20); MagTxt.BackgroundTransparency = 1; MagTxt.Text = "Lock Magnetism: 5"; MagTxt.TextColor3 = Color3.new(1,1,1); MagTxt.Font = "Gotham"; MagTxt.TextSize = 12
+local SliderBackM = Instance.new("Frame", MagRow); SliderBackM.Size = UDim2.new(1, -20, 0, 10); SliderBackM.Position = UDim2.new(0, 10, 0, 25); SliderBackM.BackgroundColor3 = Color3.fromRGB(40, 40, 45); Instance.new("UICorner", SliderBackM)
+local SliderFillM = Instance.new("Frame", SliderBackM); SliderFillM.Size = UDim2.new(0.5, 0, 1, 0); SliderFillM.BackgroundColor3 = Color3.fromRGB(60, 160, 60); Instance.new("UICorner", SliderFillM)
+
+SliderBackM.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then SlidingM = true end end)
+UIS.InputChanged:Connect(function(input) 
+    if SlidingM and input.UserInputType == Enum.UserInputType.MouseMovement then 
+        local pos = math.clamp((input.Position.X - SliderBackM.AbsolutePosition.X) / SliderBackM.AbsoluteSize.X, 0, 1)
+        SliderFillM.Size = UDim2.new(pos, 0, 1, 0); local val = math.floor(pos * 9) + 1
+        MagTxt.Text = "Lock Magnetism: " .. val; Smoothing = (11 - val) / 10 
+    end 
+end)
+
+UIS.InputEnded:Connect(function(input) 
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then 
+        Sliding = false 
+        SlidingM = false
+    end 
+end)
 
 local BindRow = Instance.new("Frame", MainPage); BindRow.Size = UDim2.new(0, 340, 0, 35); BindRow.BackgroundTransparency = 1
 local BindTxt = Instance.new("TextLabel", BindRow); BindTxt.Size = UDim2.new(0, 100, 1, 0); BindTxt.BackgroundTransparency = 1; BindTxt.Text = "Keybind:"; BindTxt.TextColor3 = Color3.new(1,1,1); BindTxt.Font = "Gotham"; BindTxt.TextXAlignment = "Left"
@@ -390,7 +411,8 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
         -- This block is strictly for MAINTAINING a lock. It will not find a new person.
         if isValid(LockedPlayer) then
             local pPart = LockedPlayer.Character[TargetPartName]
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, pPart.Position + (pPart.Velocity * (Prediction / 100)))
+            local targetCF = CFrame.new(Camera.CFrame.Position, pPart.Position + (pPart.Velocity * (Prediction / 100)))
+            Camera.CFrame = Camera.CFrame:Lerp(targetCF, Smoothing)
         else
             -- TARGET LOST: KILL ACTIVE STATUS IMMEDIATELY
             Active = false
@@ -451,7 +473,7 @@ HitTab.MouseButton1Click:Connect(function() switch(HitTab, HitPage) end)
 EspTab.MouseButton1Click:Connect(function() switch(EspTab, EspPage) end)
 
 local dragging, dragStart, startPos
-Main.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 and not Sliding then dragging = true; dragStart = input.Position; startPos = Main.Position end end)
+Main.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 and not Sliding and not SlidingM then dragging = true; dragStart = input.Position; startPos = Main.Position end end)
 UIS.InputChanged:Connect(function(input) if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then local delta = input.Position - dragStart; Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y); DropdownFrame.Visible = false end end)
 UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 
@@ -465,9 +487,24 @@ end)
 Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(function() task.wait(0.1); applyHitbox(p) end) end)
 for _,p in pairs(Players:GetPlayers()) do p.CharacterAdded:Connect(function() task.wait(0.1); applyHitbox(p) end) end
 
+-- [[ ESP & HITBOX CLEANUP FIX ]] --
+Players.PlayerRemoving:Connect(function(p)
+    if espCache[p] then
+        if espCache[p].line then espCache[p].line:Destroy() end
+        if espCache[p].name then espCache[p].name:Destroy() end
+        if espCache[p].dot then espCache[p].dot:Destroy() end
+        espCache[p] = nil
+    end
+    if hitboxData[p] then
+        if hitboxData[p].conn then hitboxData[p].conn:Disconnect() end
+        if hitboxData[p].viz then hitboxData[p].viz:Destroy() end
+        hitboxData[p] = nil
+    end
+end)
+
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "VERSION V.3.1",
+        Title = "VERSION V.3.2",
         Text = "This Script was made by jasonsgunz on Github.",
         Icon = "rbxassetid://6031094670",
         Duration = 6
