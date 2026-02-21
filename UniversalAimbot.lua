@@ -33,6 +33,7 @@ local hitboxSize = 8
 local hitboxVisual = false
 local hitboxData = {}
 local collisionEnabled = false
+local HitboxTargetPart = "HumanoidRootPart"
 
 local espCache = {} 
 local _Connections = {}
@@ -78,10 +79,12 @@ end
 
 local function findBestHitboxPart(character)
     if not character then return nil end
+    local part = character:FindFirstChild(HitboxTargetPart)
+    if part and part:IsA("BasePart") then return part end
     local priority = {"HumanoidRootPart","UpperTorso","LowerTorso","Torso","Head"}
     for _,name in ipairs(priority) do
-        local part = character:FindFirstChild(name)
-        if part and part:IsA("BasePart") then return part end
+        local p = character:FindFirstChild(name)
+        if p and p:IsA("BasePart") then return p end
     end
     return character:FindFirstChildOfClass("BasePart")
 end
@@ -151,8 +154,9 @@ Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
 local TracerContainer = Instance.new("Frame", ScreenGui)
 TracerContainer.Size = UDim2.new(1,0,1,0); TracerContainer.BackgroundTransparency = 1; TracerContainer.Visible = true
 
-local DropdownFrame = Instance.new("Frame", ScreenGui)
+local DropdownFrame = Instance.new("ScrollingFrame", ScreenGui)
 DropdownFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35); DropdownFrame.Visible = false; DropdownFrame.ZIndex = 100
+DropdownFrame.BorderSizePixel = 0; DropdownFrame.ScrollBarThickness = 4
 Instance.new("UICorner", DropdownFrame)
 Instance.new("UIListLayout", DropdownFrame).HorizontalAlignment = "Center"
 
@@ -235,10 +239,13 @@ ModeBtn.MouseButton1Click:Connect(function() Mode = (Mode == "Hold" and "Toggle"
 local PartBtn = ModeBtn:Clone(); PartBtn.Parent = MainPage; PartBtn.Text = "TARGET: HumanoidRootPart"
 local ChecksBtn = ModeBtn:Clone(); ChecksBtn.Parent = MainPage; ChecksBtn.Text = "CHECKS"
 
-local function OpenDrop(btn, height)
+local function OpenDrop(btn, canvasHeight)
     for _, v in pairs(DropdownFrame:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     DropdownFrame.Position = UDim2.fromOffset(btn.AbsolutePosition.X + (btn.AbsoluteSize.X / 2) - 100, btn.AbsolutePosition.Y + btn.AbsoluteSize.Y + 5)
-    DropdownFrame.Size = UDim2.fromOffset(200, height); DropdownFrame.Visible = not DropdownFrame.Visible
+    local viewHeight = math.min(canvasHeight, 140)
+    DropdownFrame.Size = UDim2.fromOffset(200, viewHeight)
+    DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, canvasHeight)
+    DropdownFrame.Visible = not DropdownFrame.Visible
 end
 
 PartBtn.MouseButton1Click:Connect(function() 
@@ -314,6 +321,51 @@ hTog.MouseButton1Click:Connect(function() hitboxEnabled = not hitboxEnabled; upd
 
 local hSize = Instance.new("TextBox", HitPage); hSize.Size = UDim2.new(0, 340, 0, 35); hSize.BackgroundColor3 = Color3.fromRGB(45, 45, 50); hSize.Text = tostring(hitboxSize); hSize.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", hSize)
 hSize.FocusLost:Connect(function() local n = tonumber(hSize.Text) if n then hitboxSize = n; reapplyHitboxes() end end)
+
+local hPartBtn = Instance.new("TextButton", HitPage)
+hPartBtn.Size = UDim2.new(0, 340, 0, 35)
+hPartBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+hPartBtn.Text = "TARGET: " .. HitboxTargetPart
+hPartBtn.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", hPartBtn)
+
+hPartBtn.MouseButton1Click:Connect(function()
+    local R6 = {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg", "HumanoidRootPart"}
+    local R15 = {"Head", "UpperTorso", "LowerTorso", "LeftUpperArm", "LeftLowerArm", "LeftHand", "RightUpperArm", "RightLowerArm", "RightHand", "HumanoidRootPart"}
+    local found = {}
+    local added = {}
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Character and p.Character:FindFirstChildOfClass("Humanoid") then
+            local list = p.Character.Humanoid.RigType == Enum.HumanoidRigType.R15 and R15 or R6
+            for _, n in ipairs(list) do
+                if p.Character:FindFirstChild(n) and not added[n] then
+                    added[n] = true
+                    table.insert(found, n)
+                end
+            end
+        end
+    end
+    
+    if #found == 0 then found = {"HumanoidRootPart", "Head"} end
+    
+    OpenDrop(hPartBtn, #found * 35)
+    for _, n in ipairs(found) do
+        local b = Instance.new("TextButton", DropdownFrame)
+        b.Size = UDim2.new(1, 0, 0, 35)
+        b.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+        b.Text = n
+        b.TextColor3 = Color3.new(1,1,1)
+        b.ZIndex = 101
+        
+        b.MouseButton1Click:Connect(function()
+            HitboxTargetPart = n
+            hPartBtn.Text = "TARGET: " .. n
+            DropdownFrame.Visible = false
+            reapplyHitboxes()
+        end)
+    end
+end)
 
 local vTog = Instance.new("TextButton", HitPage); vTog.Size = UDim2.new(0, 340, 0, 35); updateHitBtn(vTog, hitboxVisual, "Visualizer"); Instance.new("UICorner", vTog)
 vTog.MouseButton1Click:Connect(function() hitboxVisual = not hitboxVisual; updateHitBtn(vTog, hitboxVisual, "Visualizer"); reapplyHitboxes() end)
