@@ -89,6 +89,25 @@ local function findBestHitboxPart(character)
     return character:FindFirstChildOfClass("BasePart")
 end
 
+local function restoreHitbox(plr)
+    local data = hitboxData[plr]
+    if data then
+        if data.conn then data.conn:Disconnect() end
+        if data.viz then data.viz:Destroy() end
+        if data.part and data.part.Parent then
+            data.part.Size = data.origSize
+            data.part.Transparency = data.origTrans
+            data.part.CanCollide = data.origCollide
+            if data.origDecals then
+                for dec, trans in pairs(data.origDecals) do
+                    if dec.Parent then dec.Transparency = trans end
+                end
+            end
+        end
+        hitboxData[plr] = nil
+    end
+end
+
 local function applyHitbox(plr)
     if not hitboxEnabled or plr == LocalPlayer then return end
     local char = plr.Character
@@ -96,9 +115,17 @@ local function applyHitbox(plr)
     local hrp = findBestHitboxPart(char)
     if not hrp then return end
 
-    if hitboxData[plr] then
-        if hitboxData[plr].conn then hitboxData[plr].conn:Disconnect() end
-        if hitboxData[plr].viz then hitboxData[plr].viz:Destroy() end
+    restoreHitbox(plr)
+
+    local origSize = hrp.Size
+    local origTrans = hrp.Transparency
+    local origCollide = hrp.CanCollide
+    local origDecals = {}
+    
+    for _, v in pairs(hrp:GetChildren()) do
+        if v:IsA("Decal") or v:IsA("Texture") then
+            origDecals[v] = v.Transparency
+        end
     end
 
     local viz
@@ -115,29 +142,39 @@ local function applyHitbox(plr)
             return
         end
         hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+        
+        if hrp.Name ~= "HumanoidRootPart" then
+            hrp.Transparency = 1
+            for dec, _ in pairs(origDecals) do
+                if dec.Parent then dec.Transparency = 1 end
+            end
+        end
+        
         hrp.CanCollide = collisionEnabled
         if viz then viz.CFrame = hrp.CFrame; viz.Size = hrp.Size end
     end)
-    hitboxData[plr] = {conn=conn,viz=viz}
+    
+    hitboxData[plr] = {
+        conn = conn, 
+        viz = viz, 
+        part = hrp, 
+        origSize = origSize, 
+        origTrans = origTrans, 
+        origCollide = origCollide, 
+        origDecals = origDecals
+    }
 end
 
 local function reapplyHitboxes()
-    for _,v in pairs(hitboxData) do
-        if v.conn then v.conn:Disconnect() end
-        if v.viz then v.viz:Destroy() end
-    end
-    hitboxData = {}
-    if not hitboxEnabled then
-        for _,p in pairs(Players:GetPlayers()) do
-            local char = p.Character
-            if char then
-                local hrp = findBestHitboxPart(char)
-                if hrp then hrp.Size = Vector3.new(2,2,1); hrp.CanCollide = true end
-            end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            restoreHitbox(p)
         end
-        return
     end
-    for _,p in pairs(Players:GetPlayers()) do applyHitbox(p) end
+    if not hitboxEnabled then return end
+    for _, p in pairs(Players:GetPlayers()) do
+        applyHitbox(p)
+    end
 end
 
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
@@ -517,8 +554,8 @@ Close.MouseButton1Click:Connect(function()
     if hum then hum.WalkSpeed = 16; hum.JumpPower = 50 end
 end)
 
-Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(function() task.wait(0.1); applyHitbox(p) end) end)
-for _,p in pairs(Players:GetPlayers()) do p.CharacterAdded:Connect(function() task.wait(0.1); applyHitbox(p) end) end
+Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(function() task.wait(0.5); applyHitbox(p) end) end)
+for _,p in pairs(Players:GetPlayers()) do p.CharacterAdded:Connect(function() task.wait(0.5); applyHitbox(p) end) end
 
 Players.PlayerRemoving:Connect(function(p)
     if espCache[p] then
@@ -527,11 +564,7 @@ Players.PlayerRemoving:Connect(function(p)
         if espCache[p].dot then espCache[p].dot:Destroy() end
         espCache[p] = nil
     end
-    if hitboxData[p] then
-        if hitboxData[p].conn then hitboxData[p].conn:Disconnect() end
-        if hitboxData[p].viz then hitboxData[p].viz:Destroy() end
-        hitboxData[p] = nil
-    end
+    restoreHitbox(p)
 end)
 
 LocalPlayer.CharacterAdded:Connect(function()
