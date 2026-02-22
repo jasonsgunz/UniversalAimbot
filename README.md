@@ -1,7 +1,5 @@
-# UPDATE LOG V3.2.5!
+# UPDATE LOG V3.3!
 
--- fixxed ESP to properly clean up  and not ghost.
-
--- made wall check better
+-- added setting button u can click it only features a ui toggle atm
 
 # NOTE! THIS SCRIPT MIGHT NOT WORK IN EVERY GAME I WILL PUT MORE EFFORT FOR GAMES INTO THIS IF ANYONE IS INTERESTED TO TEST GAMES FOR ME, DM s9q9 ON DISCORD.
