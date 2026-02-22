@@ -1,5 +1,7 @@
-# UPDATE LOG V3.2 REVERT!
+# UPDATE LOG V3.2.5!
 
--- it was acctually hell trying to make it work so im thinking of new Things.
+-- fixxed ESP to properly clean up  and not ghost.
+
+-- made wall check better
 
 # NOTE! THIS SCRIPT MIGHT NOT WORK IN EVERY GAME I WILL PUT MORE EFFORT FOR GAMES INTO THIS IF ANYONE IS INTERESTED TO TEST GAMES FOR ME, DM s9q9 ON DISCORD.
