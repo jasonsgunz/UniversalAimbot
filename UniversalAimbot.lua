@@ -508,9 +508,9 @@ LocalPlayer.CharacterAdded:Connect(function() selfOptions.fly.enabled = false; t
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "VERSION V.3.3",
+        Title = "VERSION V.3.2",
         Text = "This Script was made by jasonsgunz on Github.",
-        Icon = "rbxassetid://15772199412",
+        Icon = "rbxthumb://type=Asset&id=12645430259&w=150&h=150",
         Duration = 6
     })
 end)
