@@ -138,7 +138,7 @@ local function reapplyHitboxes()
 end
 
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "Universal_V27_IconFix"
+ScreenGui.Name = "Universal_V28_Final"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 ScreenGui.IgnoreGuiInset = true 
@@ -167,12 +167,13 @@ local Close = Instance.new("TextButton", Main)
 Close.Size = UDim2.new(0, 25, 0, 25); Close.Position = UDim2.new(1, -30, 0, 5); Close.BackgroundColor3 = Color3.fromRGB(200, 50, 50); Close.Text = "X"; Close.TextColor3 = Color3.new(1, 1, 1); Close.ZIndex = 15
 Instance.new("UICorner", Close).CornerRadius = UDim.new(0, 4)
 
--- Gear Icon (Invisible box, visible floating gear)
+-- Gear Icon
 local SettingsBtn = Instance.new("ImageButton", Main)
 SettingsBtn.Size = UDim2.new(0, 22, 0, 22); SettingsBtn.Position = UDim2.new(1, -58, 0, 7)
-SettingsBtn.BackgroundTransparency = 1 -- NO VISIBLE BUTTON BOX
-SettingsBtn.Image = "rbxassetid://6073489116" -- Standard Gear Image ID
-SettingsBtn.ImageColor3 = Color3.new(1, 1, 1) -- Forces it to be white/visible
+SettingsBtn.BackgroundTransparency = 1 
+SettingsBtn.Image = "rbxassetid://14134158105" -- UPDATED ID
+SettingsBtn.ScaleType = Enum.ScaleType.Fit
+SettingsBtn.ImageColor3 = Color3.new(1, 1, 1) 
 SettingsBtn.ImageTransparency = 0
 SettingsBtn.ZIndex = 15
 
