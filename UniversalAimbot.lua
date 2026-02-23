@@ -138,7 +138,7 @@ local function reapplyHitboxes()
 end
 
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "Universal_V28_Final"
+ScreenGui.Name = "Universal_V29_ThumbFix"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 ScreenGui.IgnoreGuiInset = true 
@@ -167,14 +167,14 @@ local Close = Instance.new("TextButton", Main)
 Close.Size = UDim2.new(0, 25, 0, 25); Close.Position = UDim2.new(1, -30, 0, 5); Close.BackgroundColor3 = Color3.fromRGB(200, 50, 50); Close.Text = "X"; Close.TextColor3 = Color3.new(1, 1, 1); Close.ZIndex = 15
 Instance.new("UICorner", Close).CornerRadius = UDim.new(0, 4)
 
--- Gear Icon
+-- Gear Icon (Thumb API Method)
 local SettingsBtn = Instance.new("ImageButton", Main)
 SettingsBtn.Size = UDim2.new(0, 22, 0, 22); SettingsBtn.Position = UDim2.new(1, -58, 0, 7)
 SettingsBtn.BackgroundTransparency = 1 
-SettingsBtn.Image = "rbxassetid://14134158105" -- UPDATED ID
+-- This format converts Decal IDs to Image IDs automatically
+SettingsBtn.Image = "rbxthumb://type=Asset&id=14134158105&w=150&h=150" 
 SettingsBtn.ScaleType = Enum.ScaleType.Fit
 SettingsBtn.ImageColor3 = Color3.new(1, 1, 1) 
-SettingsBtn.ImageTransparency = 0
 SettingsBtn.ZIndex = 15
 
 -- Settings Overlay
@@ -508,9 +508,9 @@ LocalPlayer.CharacterAdded:Connect(function() selfOptions.fly.enabled = false; t
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "VERSION V.3.3",
+        Title = "VERSION V.3.2",
         Text = "This Script was made by jasonsgunz on Github.",
-        Icon = "rbxassetid://6031094670",
+        Icon = "rbxthumb://type=Asset&id=14134158105&w=150&h=150",
         Duration = 6
     })
 end)
