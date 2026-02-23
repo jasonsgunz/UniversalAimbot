@@ -1,5 +1,5 @@
-# UPDATE LOG V3.3!
+# UPDATE LOG V3.3.1! (very small update)
 
--- added setting button u can click it only features a ui toggle atm
+-- added a femboy to the notification.
 
 # NOTE! THIS SCRIPT MIGHT NOT WORK IN EVERY GAME I WILL PUT MORE EFFORT FOR GAMES INTO THIS IF ANYONE IS INTERESTED TO TEST GAMES FOR ME, DM s9q9 ON DISCORD.
