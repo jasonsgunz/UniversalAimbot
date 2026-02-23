@@ -138,7 +138,7 @@ local function reapplyHitboxes()
 end
 
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "Universal_V26_FinalUIFix"
+ScreenGui.Name = "Universal_V27_IconFix"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 ScreenGui.IgnoreGuiInset = true 
@@ -160,26 +160,26 @@ local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, -60, 0, 35); Title.Position = UDim2.new(0, 15, 0, 0); Title.BackgroundTransparency = 1
 Title.Text = "UniversalAimbot"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = "GothamBold"; Title.TextSize = 14; Title.TextXAlignment = "Left"
 
---- UI BUTTONS SECTION ---
+--- UI BUTTONS ---
 
 -- Close Button
 local Close = Instance.new("TextButton", Main)
-Close.Size = UDim2.new(0, 25, 0, 25); Close.Position = UDim2.new(1, -30, 0, 5); Close.BackgroundColor3 = Color3.fromRGB(200, 50, 50); Close.Text = "X"; Close.TextColor3 = Color3.new(1, 1, 1); Close.ZIndex = 10
+Close.Size = UDim2.new(0, 25, 0, 25); Close.Position = UDim2.new(1, -30, 0, 5); Close.BackgroundColor3 = Color3.fromRGB(200, 50, 50); Close.Text = "X"; Close.TextColor3 = Color3.new(1, 1, 1); Close.ZIndex = 15
 Instance.new("UICorner", Close).CornerRadius = UDim.new(0, 4)
 
--- Gear Icon (Invisible Button Box, Visible Gear)
+-- Gear Icon (Invisible box, visible floating gear)
 local SettingsBtn = Instance.new("ImageButton", Main)
-SettingsBtn.Size = UDim2.new(0, 25, 0, 25); SettingsBtn.Position = UDim2.new(1, -60, 0, 5)
-SettingsBtn.BackgroundTransparency = 1 -- Hide the square background
-SettingsBtn.Image = "rbxassetid://3459878578" -- The Gear Decal
-SettingsBtn.ImageTransparency = 0 -- Ensure the gear is fully visible
-SettingsBtn.ZIndex = 10
-SettingsBtn.BorderSizePixel = 0
+SettingsBtn.Size = UDim2.new(0, 22, 0, 22); SettingsBtn.Position = UDim2.new(1, -58, 0, 7)
+SettingsBtn.BackgroundTransparency = 1 -- NO VISIBLE BUTTON BOX
+SettingsBtn.Image = "rbxassetid://6073489116" -- Standard Gear Image ID
+SettingsBtn.ImageColor3 = Color3.new(1, 1, 1) -- Forces it to be white/visible
+SettingsBtn.ImageTransparency = 0
+SettingsBtn.ZIndex = 15
 
 -- Settings Overlay
 local SettingsOverlay = Instance.new("Frame", Main)
 SettingsOverlay.Size = UDim2.new(1, 0, 1, 0); SettingsOverlay.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-SettingsOverlay.ZIndex = 100; SettingsOverlay.Visible = false; SettingsOverlay.Active = true
+SettingsOverlay.ZIndex = 100; SettingsOverlay.Visible = false; SettingsOverlay.Active = true 
 Instance.new("UICorner", SettingsOverlay).CornerRadius = UDim.new(0, 8)
 
 local OverlayClose = Instance.new("TextButton", SettingsOverlay)
@@ -200,7 +200,7 @@ SettingsBtn.MouseButton1Click:Connect(function() SettingsOverlay.Visible = true 
 OverlayClose.MouseButton1Click:Connect(function() SettingsOverlay.Visible = false end)
 ToggleUIBtn.MouseButton1Click:Connect(function() SettingUIToggle = true; ToggleUIBtn.Text = "[...]" end)
 
---------------------------
+------------------
 
 local TabHolder = Instance.new("Frame", Main)
 TabHolder.Size = UDim2.new(1, -20, 0, 30); TabHolder.Position = UDim2.new(0, 10, 0, 35); TabHolder.BackgroundTransparency = 1
