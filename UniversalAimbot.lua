@@ -375,8 +375,9 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
     if char then
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then
-            hum.WalkSpeed = selfOptions.speed.enabled and selfOptions.speed.value or 16
-            hum.JumpPower = selfOptions.jump.enabled and selfOptions.jump.value or 50
+            -- ONLY set speed/jump if the option is enabled!
+            if selfOptions.speed.enabled then hum.WalkSpeed = selfOptions.speed.value end
+            if selfOptions.jump.enabled then hum.JumpPower = selfOptions.jump.value end
         end
         if antiFlingEnabled and myRoot then
             local currentCF = myRoot.CFrame
