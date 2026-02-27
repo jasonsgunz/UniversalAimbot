@@ -16,8 +16,8 @@ local LockedPlayer = nil
 local Checks = { Alive = false, Team = false, Wall = false }
 
 local selfOptions = {
-    speed = {value = 16, enabled = false, key = Enum.KeyCode.Unknown, setting = false},
-    jump = {value = 50, enabled = false, key = Enum.KeyCode.Unknown, setting = false},
+    speed = {value = 16, enabled = false, key = Enum.KeyCode.Unknown, setting = false, original = 16},
+    jump = {value = 50, enabled = false, key = Enum.KeyCode.Unknown, setting = false, original = 50},
     fly = {value = 1, enabled = false, key = Enum.KeyCode.Unknown, setting = false}
 }
 local espOptions = { tracers = false, names = false, dot = false }
@@ -324,6 +324,18 @@ for name, opt in pairs(selfOptions) do
     toggle.MouseButton1Click:Connect(function() 
         opt.enabled = not opt.enabled; updateSelfBtn(toggle, opt.enabled, name)
         if name == "fly" then if opt.enabled then task.spawn(startFly) else tpwalking = false end end
+        
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            if opt.enabled then
+                if name == "speed" then opt.original = hum.WalkSpeed end
+                if name == "jump" then opt.original = hum.JumpPower end
+            else
+                if name == "speed" then hum.WalkSpeed = opt.original end
+                if name == "jump" then hum.JumpPower = opt.original end
+            end
+        end
     end)
     kBtn.MouseButton1Click:Connect(function() opt.setting = true; kBtn.Text = "[...]" end)
     val.FocusLost:Connect(function() local n = tonumber(val.Text) if n then opt.value = n end end)
@@ -446,6 +458,18 @@ table.insert(_Connections, UIS.InputBegan:Connect(function(input, gp)
         if not gp and input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == opt.key then 
             opt.enabled = not opt.enabled; updateSelfBtn(opt.toggleBtn, opt.enabled, name)
             if name == "fly" then if opt.enabled then task.spawn(startFly) else tpwalking = false end end
+            
+            local char = LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                if opt.enabled then
+                    if name == "speed" then opt.original = hum.WalkSpeed end
+                    if name == "jump" then opt.original = hum.JumpPower end
+                else
+                    if name == "speed" then hum.WalkSpeed = opt.original end
+                    if name == "jump" then hum.JumpPower = opt.original end
+                end
+            end
         end
     end
 
@@ -485,7 +509,10 @@ Close.MouseButton1Click:Connect(function()
     hitboxEnabled, tpwalking, antiFlingEnabled = false, false, false; reapplyHitboxes() 
     for _, c in pairs(_Connections) do c:Disconnect() end; ScreenGui:Destroy()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if hum then hum.WalkSpeed = 16; hum.JumpPower = 50 end
+    if hum then 
+        hum.WalkSpeed = selfOptions.speed.original or 16
+        hum.JumpPower = selfOptions.jump.original or 50 
+    end
 end)
 
 Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(function() task.wait(0.1); applyHitbox(p) end) end)
