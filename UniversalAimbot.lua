@@ -162,22 +162,18 @@ Title.Text = "UniversalAimbot"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Fo
 
 --- UI BUTTONS ---
 
--- Close Button
 local Close = Instance.new("TextButton", Main)
 Close.Size = UDim2.new(0, 25, 0, 25); Close.Position = UDim2.new(1, -30, 0, 5); Close.BackgroundColor3 = Color3.fromRGB(200, 50, 50); Close.Text = "X"; Close.TextColor3 = Color3.new(1, 1, 1); Close.ZIndex = 15
 Instance.new("UICorner", Close).CornerRadius = UDim.new(0, 4)
 
--- Gear Icon (Thumb API Method)
 local SettingsBtn = Instance.new("ImageButton", Main)
 SettingsBtn.Size = UDim2.new(0, 22, 0, 22); SettingsBtn.Position = UDim2.new(1, -58, 0, 7)
 SettingsBtn.BackgroundTransparency = 1 
--- This format converts Decal IDs to Image IDs automatically
 SettingsBtn.Image = "rbxthumb://type=Asset&id=14134158105&w=150&h=150" 
 SettingsBtn.ScaleType = Enum.ScaleType.Fit
 SettingsBtn.ImageColor3 = Color3.new(1, 1, 1) 
 SettingsBtn.ZIndex = 15
 
--- Settings Overlay
 local SettingsOverlay = Instance.new("Frame", Main)
 SettingsOverlay.Size = UDim2.new(1, 0, 1, 0); SettingsOverlay.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 SettingsOverlay.ZIndex = 100; SettingsOverlay.Visible = false; SettingsOverlay.Active = true 
@@ -200,8 +196,6 @@ local SettingUIToggle = false
 SettingsBtn.MouseButton1Click:Connect(function() SettingsOverlay.Visible = true end)
 OverlayClose.MouseButton1Click:Connect(function() SettingsOverlay.Visible = false end)
 ToggleUIBtn.MouseButton1Click:Connect(function() SettingUIToggle = true; ToggleUIBtn.Text = "[...]" end)
-
-------------------
 
 local TabHolder = Instance.new("Frame", Main)
 TabHolder.Size = UDim2.new(1, -20, 0, 30); TabHolder.Position = UDim2.new(0, 10, 0, 35); TabHolder.BackgroundTransparency = 1
@@ -387,7 +381,6 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
     if char then
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hum then
-            -- ONLY set speed/jump if the option is enabled!
             if selfOptions.speed.enabled then hum.WalkSpeed = selfOptions.speed.value end
             if selfOptions.jump.enabled then hum.JumpPower = selfOptions.jump.value end
         end
@@ -440,13 +433,23 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
         end
     end
 
+    --- PERSISTENT AIMBOT LOGIC ---
     if Active then
-        if isValid(LockedPlayer, true) then
-            local pPart = LockedPlayer.Character[TargetPartName]
-            local targetCF = CFrame.new(Camera.CFrame.Position, pPart.Position + (pPart.Velocity * (Prediction / 100)))
-            Camera.CFrame = Camera.CFrame:Lerp(targetCF, Smoothing)
-        else Active = false; LockedPlayer = nil end
-    else LockedPlayer = nil end
+        if LockedPlayer and LockedPlayer.Parent == Players then -- Check if they haven't left
+            if isValid(LockedPlayer, true) then -- Check if they are spawned and (optionally) alive
+                local pPart = LockedPlayer.Character[TargetPartName]
+                local targetCF = CFrame.new(Camera.CFrame.Position, pPart.Position + (pPart.Velocity * (Prediction / 100)))
+                Camera.CFrame = Camera.CFrame:Lerp(targetCF, Smoothing)
+            end
+            -- If character is missing, we stay "Active" and wait for them to respawn
+        else
+            -- Target left the game entirely
+            Active = false
+            LockedPlayer = nil
+        end
+    else
+        LockedPlayer = nil
+    end
 end))
 
 table.insert(_Connections, UIS.InputBegan:Connect(function(input, gp)
