@@ -139,17 +139,17 @@ ScreenGui.Name = "Universal_V29_ThumbFix"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 ScreenGui.IgnoreGuiInset = true
-ScreenGui.DisplayOrder = 10  -- Makes the entire UI overlay above most other GUIs
+ScreenGui.DisplayOrder = 10  -- Ensures the entire UI overlays above most other GUIs
 
 local Main = Instance.new("Frame", ScreenGui)
 Main.Size = UDim2.new(0, 380, 0, 300); Main.Position = UDim2.new(0.5, -190, 0.5, -150)
 Main.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Main.Active = true; Main.BorderSizePixel = 0
-Main.ZIndex = 2  -- Slightly higher than the default (1) to ensure it sits above tracer elements
+Main.ZIndex = 2  -- Slightly higher than default so it sits above tracer elements
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
 
 local TracerContainer = Instance.new("Frame", ScreenGui)
 TracerContainer.Size = UDim2.new(1,0,1,0); TracerContainer.BackgroundTransparency = 1; TracerContainer.Visible = true
--- TracerContainer intentionally left with default ZIndex=1 so it stays behind the UI
+-- TracerContainer left at default ZIndex=1 so it stays behind the UI
 
 local DropdownFrame = Instance.new("Frame", ScreenGui)
 DropdownFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35); DropdownFrame.Visible = false; DropdownFrame.ZIndex = 110
