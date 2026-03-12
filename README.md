@@ -1,4 +1,4 @@
-# UPDATE LOG V3.3.4!
+# UPDATE LOG V3.4.1!
 
 -- Removed anti fling toggle (it was useless)
 
