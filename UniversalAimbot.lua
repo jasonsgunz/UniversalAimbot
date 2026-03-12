@@ -138,18 +138,15 @@ local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"
 ScreenGui.Name = "Universal_V29_ThumbFix"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.DisplayOrder = 10  -- Ensures the entire UI overlays above most other GUIs
+ScreenGui.IgnoreGuiInset = true 
 
 local Main = Instance.new("Frame", ScreenGui)
 Main.Size = UDim2.new(0, 380, 0, 300); Main.Position = UDim2.new(0.5, -190, 0.5, -150)
 Main.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Main.Active = true; Main.BorderSizePixel = 0
-Main.ZIndex = 2  -- Slightly higher than default so it sits above tracer elements
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
 
 local TracerContainer = Instance.new("Frame", ScreenGui)
 TracerContainer.Size = UDim2.new(1,0,1,0); TracerContainer.BackgroundTransparency = 1; TracerContainer.Visible = true
--- TracerContainer left at default ZIndex=1 so it stays behind the UI
 
 local DropdownFrame = Instance.new("Frame", ScreenGui)
 DropdownFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35); DropdownFrame.Visible = false; DropdownFrame.ZIndex = 110
@@ -550,7 +547,7 @@ end)
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "VERSION V.3.4",
+        Title = "VERSION V.3.3",
         Text = "This Script was made by jasonsgunz on Github.",
         Icon = "rbxthumb://type=Asset&id=15772199412&w=150&h=150",
         Duration = 6
