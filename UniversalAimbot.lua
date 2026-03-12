@@ -24,9 +24,12 @@ local espOptions = { tracers = false, names = false, dot = false }
 
 local antiFlingEnabled = false
 local lastSafeCF = CFrame.new()
-local teleportThreshold = 20    
+local teleportThreshold = 50    
 local tpwalking = false
 local ctrl = {f=0,b=0,l=0,r=0}
+
+local antiFlingGhost = nil
+local antiFlingTracer = nil
 
 local hitboxEnabled = false
 local hitboxSize = 8
@@ -341,6 +344,35 @@ antiFlingBtn.MouseButton1Click:Connect(function()
     antiFlingEnabled = not antiFlingEnabled
     antiFlingBtn.Text = "Anti-Fling: "..(antiFlingEnabled and "ON" or "OFF")
     antiFlingBtn.BackgroundColor3 = antiFlingEnabled and Color3.fromRGB(60,160,60) or Color3.fromRGB(200,50,50)
+    
+    if antiFlingEnabled then
+        local char = LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            lastSafeCF = char.HumanoidRootPart.CFrame
+            char.Archivable = true
+            antiFlingGhost = char:Clone()
+            antiFlingGhost.Name = "ServerGhost"
+            for _, v in pairs(antiFlingGhost:GetDescendants()) do
+                if v:IsA("Script") or v:IsA("LocalScript") then v:Destroy() end
+                if v:IsA("BasePart") then
+                    v.Anchored = true; v.CanCollide = false
+                    v.Transparency = 0.5; v.Material = Enum.Material.ForceField
+                    v.Color = Color3.fromRGB(0, 255, 255)
+                elseif v:IsA("Decal") or v:IsA("Texture") then
+                    v:Destroy()
+                end
+            end
+            antiFlingGhost.Parent = workspace
+            
+            antiFlingTracer = Instance.new("Frame", TracerContainer)
+            antiFlingTracer.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+            antiFlingTracer.BorderSizePixel = 0
+            antiFlingTracer.AnchorPoint = Vector2.new(0.5, 0.5)
+        end
+    else
+        if antiFlingGhost then antiFlingGhost:Destroy(); antiFlingGhost = nil end
+        if antiFlingTracer then antiFlingTracer:Destroy(); antiFlingTracer = nil end
+    end
 end)
 
 local function updateHitBtn(btn, state, txt)
@@ -384,17 +416,49 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
             if selfOptions.speed.enabled then hum.WalkSpeed = selfOptions.speed.value end
             if selfOptions.jump.enabled then hum.JumpPower = selfOptions.jump.value end
         end
+        
         if antiFlingEnabled and myRoot then
             local currentCF = myRoot.CFrame
-            if (currentCF.Position - lastSafeCF.Position).Magnitude > teleportThreshold and not tpwalking then
-                myRoot.CFrame = lastSafeCF; myRoot.AssemblyLinearVelocity = Vector3.zero
-            else lastSafeCF = currentCF end
-            myRoot.AssemblyAngularVelocity = Vector3.zero 
             local vel = myRoot.AssemblyLinearVelocity
-            if vel.Magnitude > 100 then myRoot.AssemblyLinearVelocity = Vector3.new(math.clamp(vel.X, -50, 50), vel.Y, math.clamp(vel.Z, -50, 50)) end
+            
+            if (vel.Magnitude > 55 or (currentCF.Position - lastSafeCF.Position).Magnitude > teleportThreshold) and not tpwalking then
+                myRoot.CFrame = lastSafeCF; myRoot.AssemblyLinearVelocity = Vector3.zero
+            else 
+                lastSafeCF = currentCF 
+            end
+            
+            myRoot.AssemblyAngularVelocity = Vector3.zero 
             for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanTouch = false end end
             if hum then hum.Sit = false end
-        elseif myRoot then lastSafeCF = myRoot.CFrame end
+
+            if antiFlingGhost and antiFlingGhost.Parent then
+                for _, part in pairs(char:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        local ghostPart = antiFlingGhost:FindFirstChild(part.Name)
+                        if ghostPart then
+                            local relative = myRoot.CFrame:ToObjectSpace(part.CFrame)
+                            ghostPart.CFrame = lastSafeCF * relative
+                        end
+                    end
+                end
+
+                if antiFlingTracer then
+                    local safePos, safeOnScreen = Camera:WorldToViewportPoint(lastSafeCF.Position)
+                    local realPos, realOnScreen = Camera:WorldToViewportPoint(myRoot.Position)
+                    if safeOnScreen or realOnScreen then
+                        local p1, p2 = Vector2.new(realPos.X, realPos.Y), Vector2.new(safePos.X, safePos.Y)
+                        antiFlingTracer.Size = UDim2.new(0, (p2 - p1).Magnitude, 0, 1.5)
+                        antiFlingTracer.Position = UDim2.new(0, (p1.X + p2.X) / 2, 0, (p1.Y + p2.Y) / 2)
+                        antiFlingTracer.Rotation = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
+                        antiFlingTracer.Visible = true
+                    else
+                        antiFlingTracer.Visible = false
+                    end
+                end
+            end
+        elseif myRoot then 
+            lastSafeCF = myRoot.CFrame 
+        end
     end
 
     for _, p in pairs(Players:GetPlayers()) do
@@ -435,15 +499,13 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
 
     --- PERSISTENT AIMBOT LOGIC ---
     if Active then
-        if LockedPlayer and LockedPlayer.Parent == Players then -- Check if they haven't left
-            if isValid(LockedPlayer, true) then -- Check if they are spawned and (optionally) alive
+        if LockedPlayer and LockedPlayer.Parent == Players then 
+            if isValid(LockedPlayer, true) then 
                 local pPart = LockedPlayer.Character[TargetPartName]
                 local targetCF = CFrame.new(Camera.CFrame.Position, pPart.Position + (pPart.Velocity * (Prediction / 100)))
                 Camera.CFrame = Camera.CFrame:Lerp(targetCF, Smoothing)
             end
-            -- If character is missing, we stay "Active" and wait for them to respawn
         else
-            -- Target left the game entirely
             Active = false
             LockedPlayer = nil
         end
@@ -510,6 +572,8 @@ UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputT
 
 Close.MouseButton1Click:Connect(function()
     hitboxEnabled, tpwalking, antiFlingEnabled = false, false, false; reapplyHitboxes() 
+    if antiFlingGhost then antiFlingGhost:Destroy(); antiFlingGhost = nil end
+    if antiFlingTracer then antiFlingTracer:Destroy(); antiFlingTracer = nil end
     for _, c in pairs(_Connections) do c:Disconnect() end; ScreenGui:Destroy()
     local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
     if hum then 
@@ -535,7 +599,14 @@ Players.PlayerRemoving:Connect(function(p)
     end
 end)
 
-LocalPlayer.CharacterAdded:Connect(function() selfOptions.fly.enabled = false; tpwalking = false; updateSelfBtn(selfOptions.fly.toggleBtn, false, "fly") end)
+LocalPlayer.CharacterAdded:Connect(function() 
+    selfOptions.fly.enabled = false; tpwalking = false; updateSelfBtn(selfOptions.fly.toggleBtn, false, "fly") 
+    if antiFlingGhost then antiFlingGhost:Destroy(); antiFlingGhost = nil end
+    if antiFlingTracer then antiFlingTracer:Destroy(); antiFlingTracer = nil end
+    antiFlingEnabled = false
+    antiFlingBtn.Text = "Anti-Fling: OFF"
+    antiFlingBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+end)
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
