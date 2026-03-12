@@ -352,14 +352,18 @@ antiFlingBtn.MouseButton1Click:Connect(function()
             char.Archivable = true
             antiFlingGhost = char:Clone()
             antiFlingGhost.Name = "ServerGhost"
+            
+            -- Scrub the rig properly so it doesn't break into random pieces
             for _, v in pairs(antiFlingGhost:GetDescendants()) do
-                if v:IsA("Script") or v:IsA("LocalScript") then v:Destroy() end
-                if v:IsA("BasePart") then
-                    v.Anchored = true; v.CanCollide = false
-                    v.Transparency = 0.5; v.Material = Enum.Material.ForceField
+                if v:IsA("Script") or v:IsA("LocalScript") or v:IsA("Sound") or v:IsA("ParticleEmitter") or v:IsA("Decal") then 
+                    v:Destroy() 
+                elseif v:IsA("BasePart") then
+                    v.Anchored = true
+                    v.CanCollide = false
+                    v.Transparency = 0.5
+                    v.Material = Enum.Material.ForceField
                     v.Color = Color3.fromRGB(0, 255, 255)
-                elseif v:IsA("Decal") or v:IsA("Texture") then
-                    v:Destroy()
+                    v.CastShadow = false
                 end
             end
             antiFlingGhost.Parent = workspace
@@ -406,6 +410,38 @@ nameTog.MouseButton1Click:Connect(function() espOptions.names = not espOptions.n
 local dotTog = Instance.new("TextButton", EspPage); dotTog.Size = UDim2.new(0, 340, 0, 35); updateEspBtn(dotTog, espOptions.dot, "Dot ESP"); Instance.new("UICorner", dotTog)
 dotTog.MouseButton1Click:Connect(function() espOptions.dot = not espOptions.dot; updateEspBtn(dotTog, espOptions.dot, "Dot ESP") end)
 
+-- PHYSICS LOGIC (Stops you from being flung before it visually happens)
+table.insert(_Connections, RunService.Stepped:Connect(function()
+    if not antiFlingEnabled then return end
+    local char = LocalPlayer.Character
+    local myRoot = char and char:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+    
+    local currentCF = myRoot.CFrame
+    local vel = myRoot.AssemblyLinearVelocity
+    
+    -- Update safe position ONLY if we are moving at a normal speed (not currently getting flung)
+    if vel.Magnitude < 45 and not tpwalking then
+        lastSafeCF = currentCF
+    end
+    
+    -- Hard teleport and velocity reset if we breach the threshold
+    if (vel.Magnitude > 50 or (currentCF.Position - lastSafeCF.Position).Magnitude > teleportThreshold) and not tpwalking then
+        myRoot.CFrame = lastSafeCF
+        myRoot.AssemblyLinearVelocity = Vector3.zero
+        myRoot.AssemblyAngularVelocity = Vector3.zero
+        
+        -- Numb all body parts to stop residual physics explosions
+        for _, part in pairs(char:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.AssemblyLinearVelocity = Vector3.zero
+                part.AssemblyAngularVelocity = Vector3.zero
+            end
+        end
+    end
+end))
+
+-- VISUAL LOGIC
 table.insert(_Connections, RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
     local myRoot = char and char:FindFirstChild("HumanoidRootPart")
@@ -418,19 +454,6 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
         end
         
         if antiFlingEnabled and myRoot then
-            local currentCF = myRoot.CFrame
-            local vel = myRoot.AssemblyLinearVelocity
-            
-            if (vel.Magnitude > 55 or (currentCF.Position - lastSafeCF.Position).Magnitude > teleportThreshold) and not tpwalking then
-                myRoot.CFrame = lastSafeCF; myRoot.AssemblyLinearVelocity = Vector3.zero
-            else 
-                lastSafeCF = currentCF 
-            end
-            
-            myRoot.AssemblyAngularVelocity = Vector3.zero 
-            for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanTouch = false end end
-            if hum then hum.Sit = false end
-
             if antiFlingGhost and antiFlingGhost.Parent then
                 for _, part in pairs(char:GetChildren()) do
                     if part:IsA("BasePart") then
@@ -447,17 +470,22 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
                     local realPos, realOnScreen = Camera:WorldToViewportPoint(myRoot.Position)
                     if safeOnScreen or realOnScreen then
                         local p1, p2 = Vector2.new(realPos.X, realPos.Y), Vector2.new(safePos.X, safePos.Y)
-                        antiFlingTracer.Size = UDim2.new(0, (p2 - p1).Magnitude, 0, 1.5)
-                        antiFlingTracer.Position = UDim2.new(0, (p1.X + p2.X) / 2, 0, (p1.Y + p2.Y) / 2)
-                        antiFlingTracer.Rotation = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
-                        antiFlingTracer.Visible = true
+                        local distance = (p2 - p1).Magnitude
+                        
+                        -- Only show the tracer if there's actually a gap to draw
+                        if distance > 3 then
+                            antiFlingTracer.Size = UDim2.new(0, distance, 0, 2)
+                            antiFlingTracer.Position = UDim2.new(0, (p1.X + p2.X) / 2, 0, (p1.Y + p2.Y) / 2)
+                            antiFlingTracer.Rotation = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
+                            antiFlingTracer.Visible = true
+                        else
+                            antiFlingTracer.Visible = false
+                        end
                     else
                         antiFlingTracer.Visible = false
                     end
                 end
             end
-        elseif myRoot then 
-            lastSafeCF = myRoot.CFrame 
         end
     end
 
