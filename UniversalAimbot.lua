@@ -24,7 +24,7 @@ local espOptions = { tracers = false, names = false, dot = false }
 
 local antiFlingEnabled = false
 local lastSafeCF = CFrame.new()
-local teleportThreshold = 50    
+local teleportThreshold = 40    
 local tpwalking = false
 local ctrl = {f=0,b=0,l=0,r=0}
 
@@ -39,6 +39,19 @@ local collisionEnabled = false
 
 local espCache = {} 
 local _Connections = {}
+
+-- Utility to stop all momentum
+local function zeroVelocity(char)
+    if not char then return end
+    for _, v in pairs(char:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.AssemblyLinearVelocity = Vector3.new(0,0,0)
+            v.AssemblyAngularVelocity = Vector3.new(0,0,0)
+            v.Velocity = Vector3.new(0,0,0) -- Legacy support
+            v.RotVelocity = Vector3.new(0,0,0)
+        end
+    end
+end
 
 local function isVisible(targetPart)
     if not targetPart or not targetPart.Parent then return false end
@@ -141,7 +154,7 @@ local function reapplyHitboxes()
 end
 
 local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-ScreenGui.Name = "Universal_V29_ThumbFix"
+ScreenGui.Name = "Universal_V30_Stabled"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 ScreenGui.IgnoreGuiInset = true 
@@ -163,23 +176,16 @@ local Title = Instance.new("TextLabel", Main)
 Title.Size = UDim2.new(1, -60, 0, 35); Title.Position = UDim2.new(0, 15, 0, 0); Title.BackgroundTransparency = 1
 Title.Text = "UniversalAimbot"; Title.TextColor3 = Color3.new(1, 1, 1); Title.Font = "GothamBold"; Title.TextSize = 14; Title.TextXAlignment = "Left"
 
---- UI BUTTONS ---
-
 local Close = Instance.new("TextButton", Main)
 Close.Size = UDim2.new(0, 25, 0, 25); Close.Position = UDim2.new(1, -30, 0, 5); Close.BackgroundColor3 = Color3.fromRGB(200, 50, 50); Close.Text = "X"; Close.TextColor3 = Color3.new(1, 1, 1); Close.ZIndex = 15
 Instance.new("UICorner", Close).CornerRadius = UDim.new(0, 4)
 
 local SettingsBtn = Instance.new("ImageButton", Main)
 SettingsBtn.Size = UDim2.new(0, 22, 0, 22); SettingsBtn.Position = UDim2.new(1, -58, 0, 7)
-SettingsBtn.BackgroundTransparency = 1 
-SettingsBtn.Image = "rbxthumb://type=Asset&id=14134158105&w=150&h=150" 
-SettingsBtn.ScaleType = Enum.ScaleType.Fit
-SettingsBtn.ImageColor3 = Color3.new(1, 1, 1) 
-SettingsBtn.ZIndex = 15
+SettingsBtn.BackgroundTransparency = 1; SettingsBtn.Image = "rbxthumb://type=Asset&id=14134158105&w=150&h=150"; SettingsBtn.ScaleType = Enum.ScaleType.Fit; SettingsBtn.ImageColor3 = Color3.new(1, 1, 1); SettingsBtn.ZIndex = 15
 
 local SettingsOverlay = Instance.new("Frame", Main)
-SettingsOverlay.Size = UDim2.new(1, 0, 1, 0); SettingsOverlay.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-SettingsOverlay.ZIndex = 100; SettingsOverlay.Visible = false; SettingsOverlay.Active = true 
+SettingsOverlay.Size = UDim2.new(1, 0, 1, 0); SettingsOverlay.BackgroundColor3 = Color3.fromRGB(25, 25, 30); SettingsOverlay.ZIndex = 100; SettingsOverlay.Visible = false; SettingsOverlay.Active = true 
 Instance.new("UICorner", SettingsOverlay).CornerRadius = UDim.new(0, 8)
 
 local OverlayClose = Instance.new("TextButton", SettingsOverlay)
@@ -221,6 +227,7 @@ Instance.new("UIListLayout", SelfPage).HorizontalAlignment = "Center"; SelfPage.
 Instance.new("UIListLayout", HitPage).HorizontalAlignment = "Center"; HitPage.UIListLayout.Padding = UDim.new(0, 15)
 Instance.new("UIListLayout", EspPage).HorizontalAlignment = "Center"; EspPage.UIListLayout.Padding = UDim.new(0, 8)
 
+-- Main Page Elements (Aimbot stuff)
 local Sliding = false
 local PredRow = Instance.new("Frame", MainPage); PredRow.Size = UDim2.new(0, 340, 0, 45); PredRow.BackgroundTransparency = 1
 local PredTxt = Instance.new("TextLabel", PredRow); PredTxt.Size = UDim2.new(1, 0, 0, 20); PredTxt.BackgroundTransparency = 1; PredTxt.Text = "Prediction: 0%"; PredTxt.TextColor3 = Color3.new(1,1,1); PredTxt.Font = "Gotham"; PredTxt.TextSize = 12
@@ -353,9 +360,8 @@ antiFlingBtn.MouseButton1Click:Connect(function()
             antiFlingGhost = char:Clone()
             antiFlingGhost.Name = "ServerGhost"
             
-            -- Scrub the rig properly so it doesn't break into random pieces
             for _, v in pairs(antiFlingGhost:GetDescendants()) do
-                if v:IsA("Script") or v:IsA("LocalScript") or v:IsA("Sound") or v:IsA("ParticleEmitter") or v:IsA("Decal") then 
+                if v:IsA("Script") or v:IsA("LocalScript") or v:IsA("Sound") or v:IsA("ParticleEmitter") or v:IsA("Decal") or v:IsA("Motor6D") then 
                     v:Destroy() 
                 elseif v:IsA("BasePart") then
                     v.Anchored = true
@@ -410,8 +416,8 @@ nameTog.MouseButton1Click:Connect(function() espOptions.names = not espOptions.n
 local dotTog = Instance.new("TextButton", EspPage); dotTog.Size = UDim2.new(0, 340, 0, 35); updateEspBtn(dotTog, espOptions.dot, "Dot ESP"); Instance.new("UICorner", dotTog)
 dotTog.MouseButton1Click:Connect(function() espOptions.dot = not espOptions.dot; updateEspBtn(dotTog, espOptions.dot, "Dot ESP") end)
 
--- PHYSICS LOGIC (Stops you from being flung before it visually happens)
-table.insert(_Connections, RunService.Stepped:Connect(function()
+-- CORE PHYSICS (PRE-SIMULATION FIX)
+table.insert(_Connections, RunService.PreSimulation:Connect(function()
     if not antiFlingEnabled then return end
     local char = LocalPlayer.Character
     local myRoot = char and char:FindFirstChild("HumanoidRootPart")
@@ -420,28 +426,18 @@ table.insert(_Connections, RunService.Stepped:Connect(function()
     local currentCF = myRoot.CFrame
     local vel = myRoot.AssemblyLinearVelocity
     
-    -- Update safe position ONLY if we are moving at a normal speed (not currently getting flung)
+    -- Safe check
     if vel.Magnitude < 45 and not tpwalking then
         lastSafeCF = currentCF
     end
     
-    -- Hard teleport and velocity reset if we breach the threshold
-    if (vel.Magnitude > 50 or (currentCF.Position - lastSafeCF.Position).Magnitude > teleportThreshold) and not tpwalking then
+    -- Anti-Fling Logic
+    if (vel.Magnitude > 55 or (currentCF.Position - lastSafeCF.Position).Magnitude > teleportThreshold) and not tpwalking then
         myRoot.CFrame = lastSafeCF
-        myRoot.AssemblyLinearVelocity = Vector3.zero
-        myRoot.AssemblyAngularVelocity = Vector3.zero
-        
-        -- Numb all body parts to stop residual physics explosions
-        for _, part in pairs(char:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.AssemblyLinearVelocity = Vector3.zero
-                part.AssemblyAngularVelocity = Vector3.zero
-            end
-        end
+        zeroVelocity(char) -- Kill all motion instantly
     end
 end))
 
--- VISUAL LOGIC
 table.insert(_Connections, RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
     local myRoot = char and char:FindFirstChild("HumanoidRootPart")
@@ -453,42 +449,36 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
             if selfOptions.jump.enabled then hum.JumpPower = selfOptions.jump.value end
         end
         
-        if antiFlingEnabled and myRoot then
-            if antiFlingGhost and antiFlingGhost.Parent then
-                for _, part in pairs(char:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        local ghostPart = antiFlingGhost:FindFirstChild(part.Name)
-                        if ghostPart then
-                            local relative = myRoot.CFrame:ToObjectSpace(part.CFrame)
-                            ghostPart.CFrame = lastSafeCF * relative
-                        end
+        -- Update Ghost Visual
+        if antiFlingEnabled and antiFlingGhost and myRoot then
+            for _, part in pairs(char:GetChildren()) do
+                if part:IsA("BasePart") then
+                    local ghostPart = antiFlingGhost:FindFirstChild(part.Name)
+                    if ghostPart then
+                        local relative = myRoot.CFrame:ToObjectSpace(part.CFrame)
+                        ghostPart.CFrame = lastSafeCF * relative
                     end
                 end
+            end
 
-                if antiFlingTracer then
-                    local safePos, safeOnScreen = Camera:WorldToViewportPoint(lastSafeCF.Position)
-                    local realPos, realOnScreen = Camera:WorldToViewportPoint(myRoot.Position)
-                    if safeOnScreen or realOnScreen then
-                        local p1, p2 = Vector2.new(realPos.X, realPos.Y), Vector2.new(safePos.X, safePos.Y)
-                        local distance = (p2 - p1).Magnitude
-                        
-                        -- Only show the tracer if there's actually a gap to draw
-                        if distance > 3 then
-                            antiFlingTracer.Size = UDim2.new(0, distance, 0, 2)
-                            antiFlingTracer.Position = UDim2.new(0, (p1.X + p2.X) / 2, 0, (p1.Y + p2.Y) / 2)
-                            antiFlingTracer.Rotation = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
-                            antiFlingTracer.Visible = true
-                        else
-                            antiFlingTracer.Visible = false
-                        end
-                    else
-                        antiFlingTracer.Visible = false
-                    end
-                end
+            if antiFlingTracer then
+                local safePos, safeOnScreen = Camera:WorldToViewportPoint(lastSafeCF.Position)
+                local realPos, realOnScreen = Camera:WorldToViewportPoint(myRoot.Position)
+                if safeOnScreen or realOnScreen then
+                    local p1, p2 = Vector2.new(realPos.X, realPos.Y), Vector2.new(safePos.X, safePos.Y)
+                    local dist = (p2 - p1).Magnitude
+                    if dist > 2 then
+                        antiFlingTracer.Size = UDim2.new(0, dist, 0, 3)
+                        antiFlingTracer.Position = UDim2.new(0, (p1.X + p2.X) / 2, 0, (p1.Y + p2.Y) / 2)
+                        antiFlingTracer.Rotation = math.deg(math.atan2(p2.Y - p1.Y, p2.X - p1.X))
+                        antiFlingTracer.Visible = true
+                    else antiFlingTracer.Visible = false end
+                else antiFlingTracer.Visible = false end
             end
         end
     end
 
+    -- ESP rendering
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character then
             local root = p.Character:FindFirstChild("HumanoidRootPart")
@@ -525,20 +515,13 @@ table.insert(_Connections, RunService.RenderStepped:Connect(function()
         end
     end
 
-    --- PERSISTENT AIMBOT LOGIC ---
-    if Active then
-        if LockedPlayer and LockedPlayer.Parent == Players then 
-            if isValid(LockedPlayer, true) then 
-                local pPart = LockedPlayer.Character[TargetPartName]
-                local targetCF = CFrame.new(Camera.CFrame.Position, pPart.Position + (pPart.Velocity * (Prediction / 100)))
-                Camera.CFrame = Camera.CFrame:Lerp(targetCF, Smoothing)
-            end
-        else
-            Active = false
-            LockedPlayer = nil
-        end
-    else
-        LockedPlayer = nil
+    -- Persistent Aimbot logic
+    if Active and LockedPlayer and LockedPlayer.Parent == Players and isValid(LockedPlayer, true) then 
+        local pPart = LockedPlayer.Character[TargetPartName]
+        local targetCF = CFrame.new(Camera.CFrame.Position, pPart.Position + (pPart.Velocity * (Prediction / 100)))
+        Camera.CFrame = Camera.CFrame:Lerp(targetCF, Smoothing)
+    elseif not Mode == "Hold" then
+        Active = false; LockedPlayer = nil
     end
 end))
 
@@ -551,18 +534,6 @@ table.insert(_Connections, UIS.InputBegan:Connect(function(input, gp)
         if not gp and input.KeyCode ~= Enum.KeyCode.Unknown and input.KeyCode == opt.key then 
             opt.enabled = not opt.enabled; updateSelfBtn(opt.toggleBtn, opt.enabled, name)
             if name == "fly" then if opt.enabled then task.spawn(startFly) else tpwalking = false end end
-            
-            local char = LocalPlayer.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                if opt.enabled then
-                    if name == "speed" then opt.original = hum.WalkSpeed end
-                    if name == "jump" then opt.original = hum.JumpPower end
-                else
-                    if name == "speed" then hum.WalkSpeed = opt.original end
-                    if name == "jump" then hum.JumpPower = opt.original end
-                end
-            end
         end
     end
 
@@ -603,11 +574,6 @@ Close.MouseButton1Click:Connect(function()
     if antiFlingGhost then antiFlingGhost:Destroy(); antiFlingGhost = nil end
     if antiFlingTracer then antiFlingTracer:Destroy(); antiFlingTracer = nil end
     for _, c in pairs(_Connections) do c:Disconnect() end; ScreenGui:Destroy()
-    local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if hum then 
-        hum.WalkSpeed = selfOptions.speed.original or 16
-        hum.JumpPower = selfOptions.jump.original or 50 
-    end
 end)
 
 Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(function() task.wait(0.1); applyHitbox(p) end) end)
