@@ -547,7 +547,7 @@ end)
 
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "VERSION V.3.3",
+        Title = "VERSION V.3.4",
         Text = "This Script was made by jasonsgunz on Github.",
         Icon = "rbxthumb://type=Asset&id=15772199412&w=150&h=150",
         Duration = 6
