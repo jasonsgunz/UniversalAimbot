@@ -360,6 +360,53 @@ ForceResetBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Fling Yourself Button (only for Da Hood)
+if game.GameId == 2788229376 then
+    local FlingBtn = Instance.new("TextButton", SelfPage)
+    FlingBtn.Size = UDim2.new(0, 340, 0, 35)
+    FlingBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    FlingBtn.Text = "Fling yourself!"
+    FlingBtn.TextColor3 = Color3.new(1, 1, 1)
+    FlingBtn.Font = Enum.Font.GothamBold
+    FlingBtn.TextSize = 14
+    Instance.new("UICorner", FlingBtn).CornerRadius = UDim.new(0, 4)
+
+    FlingBtn.MouseButton1Click:Connect(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        
+        -- Get all base parts in character
+        local parts = {}
+        for _, v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                table.insert(parts, v)
+            end
+        end
+        
+        -- Apply massive velocity to each part
+        local flingVelocity = Vector3.new(5000, 5000, 5000) -- High velocity in all directions
+        for _, part in ipairs(parts) do
+            part.AssemblyLinearVelocity = flingVelocity
+            -- Also add BodyVelocity to sustain the fling
+            local bv = Instance.new("BodyVelocity")
+            bv.Velocity = flingVelocity
+            bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+            bv.Parent = part
+            task.delay(1, function()
+                if bv and bv.Parent then
+                    bv:Destroy()
+                end
+            end)
+        end
+        
+        -- Additionally, try to set root part CFrame far away (may cause rubberband fling)
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if root then
+            root.CFrame = CFrame.new(100000, 100000, 100000)
+        end
+    end)
+end
+
 local function updateHitBtn(btn, state, txt)
     btn.BackgroundColor3 = state and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(200, 50, 50)
     btn.Text = txt .. ": " .. (state and "ON" or "OFF")
