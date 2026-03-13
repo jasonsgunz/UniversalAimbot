@@ -361,28 +361,29 @@ ForceResetBtn.MouseButton1Click:Connect(function()
 end)
 
 if game.GameId == 2788229376 then
-
-if game.GameId == 2788229376 then
     local FlingBtn = Instance.new("TextButton", SelfPage)
     FlingBtn.Size = UDim2.new(0, 340, 0, 35)
-    FlingBtn.Position = UDim2.new(0.5, -170, 0, 0)
     FlingBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
     FlingBtn.Text = "Fling yourself!"
     FlingBtn.TextColor3 = Color3.new(1, 1, 1)
     FlingBtn.Font = Enum.Font.GothamBold
     FlingBtn.TextSize = 14
-    FlingBtn.ZIndex = 10
+    FlingBtn.ZIndex = 2
     FlingBtn.Active = true
     FlingBtn.Visible = true
-    FlingBtn.BorderSizePixel = 0
     Instance.new("UICorner", FlingBtn).CornerRadius = UDim.new(0, 4)
 
-    SelfPage.CanvasSize = UDim2.new(0, 0, 0, SelfPage.UIListLayout.AbsoluteContentSize.Y + 45)
+    -- Update canvas size after UI layout updates
+    task.wait()
+    SelfPage.CanvasSize = UDim2.new(0, 0, 0, SelfPage.UIListLayout.AbsoluteContentSize.Y + 10)
 
     FlingBtn.MouseButton1Click:Connect(function()
         local char = LocalPlayer.Character
         if not char then return end
         
+        -- Try multiple methods for when ragdolled
+        
+        -- Method 1: Get ALL parts including root and apply velocity
         local parts = {}
         for _, v in pairs(char:GetDescendants()) do
             if v:IsA("BasePart") then
@@ -390,29 +391,49 @@ if game.GameId == 2788229376 then
             end
         end
         
-
+        -- Method 2: Extreme velocity in all directions
         local flingVelocity = Vector3.new(5000, 5000, 5000)
+        local flingDirection = Vector3.new(10000, 10000, 10000) -- Even more extreme
+        
         for _, part in ipairs(parts) do
-            part.AssemblyLinearVelocity = flingVelocity
-
+            -- Clear any existing velocity first
+            part.AssemblyLinearVelocity = Vector3.zero
+            part.AssemblyAngularVelocity = Vector3.zero
+            
+            -- Apply massive velocity
+            part.AssemblyLinearVelocity = flingDirection
+            
+            -- Add BodyVelocity for sustained fling
             local bv = Instance.new("BodyVelocity")
-            bv.Velocity = flingVelocity
+            bv.Velocity = flingDirection
             bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
             bv.Parent = part
-            task.delay(1, function()
-                if bv and bv.Parent then
-                    bv:Destroy()
-                end
+            
+            -- Add BodyAngularVelocity for spinning
+            local bav = Instance.new("BodyAngularVelocity")
+            bav.AngularVelocity = Vector3.new(1000, 1000, 1000)
+            bav.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+            bav.Parent = part
+            
+            task.delay(2, function()
+                if bv and bv.Parent then bv:Destroy() end
+                if bav and bav.Parent then bav:Destroy() end
             end)
         end
         
+        -- Method 3: Teleport root far away while keeping velocity (causes rubberband fling)
         local root = char:FindFirstChild("HumanoidRootPart")
         if root then
-            root.CFrame = CFrame.new(100000, 100000, 100000)
+            root.CFrame = CFrame.new(99999, 99999, 99999)
+        end
+        
+        -- Method 4: Disable root anchoring if it exists
+        if root then
+            root.Anchored = false
         end
     end)
 end
-
+        
 local function updateHitBtn(btn, state, txt)
     btn.BackgroundColor3 = state and Color3.fromRGB(60, 160, 60) or Color3.fromRGB(200, 50, 50)
     btn.Text = txt .. ": " .. (state and "ON" or "OFF")
