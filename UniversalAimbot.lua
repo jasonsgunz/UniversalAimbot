@@ -361,17 +361,23 @@ ForceResetBtn.MouseButton1Click:Connect(function()
 end)
 
 if game.GameId == 2788229376 then
+
+if game.GameId == 2788229376 then
     local FlingBtn = Instance.new("TextButton", SelfPage)
     FlingBtn.Size = UDim2.new(0, 340, 0, 35)
+    FlingBtn.Position = UDim2.new(0.5, -170, 0, 0)
     FlingBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
     FlingBtn.Text = "Fling yourself!"
     FlingBtn.TextColor3 = Color3.new(1, 1, 1)
     FlingBtn.Font = Enum.Font.GothamBold
     FlingBtn.TextSize = 14
-    FlingBtn.ZIndex = 2
+    FlingBtn.ZIndex = 10
     FlingBtn.Active = true
     FlingBtn.Visible = true
+    FlingBtn.BorderSizePixel = 0
     Instance.new("UICorner", FlingBtn).CornerRadius = UDim.new(0, 4)
+
+    SelfPage.CanvasSize = UDim2.new(0, 0, 0, SelfPage.UIListLayout.AbsoluteContentSize.Y + 45)
 
     FlingBtn.MouseButton1Click:Connect(function()
         local char = LocalPlayer.Character
@@ -383,6 +389,7 @@ if game.GameId == 2788229376 then
                 table.insert(parts, v)
             end
         end
+        
 
         local flingVelocity = Vector3.new(5000, 5000, 5000)
         for _, part in ipairs(parts) do
